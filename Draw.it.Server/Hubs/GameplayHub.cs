@@ -70,7 +70,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         var totalRounds = room.Settings.NumberOfRounds;
         var currentRound = game.CurrentRound;
         await Clients.Caller.SendAsync("ReceiveRoundStarted", currentRound, totalRounds);
-        
+
         await base.OnConnectedAsync();
         _logger.LogInformation("Connected: User with id={UserId} to gameplay room with roomId={RoomId}", user.Id, roomId);
     }
