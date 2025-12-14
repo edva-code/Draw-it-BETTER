@@ -66,6 +66,11 @@ public class GameplayHub : BaseHub<GameplayHub>
             await Clients.Caller.SendAsync("ReceiveMessage", "System", waitingMessage);
         }
 
+        var room = _roomService.GetRoom(roomId);
+        var totalRounds = room.Settings.NumberOfRounds;
+        var currentRound = game.CurrentRound;
+        await Clients.Caller.SendAsync("ReceiveRoundStarted", currentRound, totalRounds);
+        
         await base.OnConnectedAsync();
         _logger.LogInformation("Connected: User with id={UserId} to gameplay room with roomId={RoomId}", user.Id, roomId);
     }
@@ -207,8 +212,8 @@ public class GameplayHub : BaseHub<GameplayHub>
         var room = _roomService.GetRoom(roomId);
         var game = _gameService.GetGame(roomId);
         var totalRounds = room.Settings.NumberOfRounds;
-
-        await Clients.Group(roomId).SendAsync("ReceiveRoundStarted", game.CurrentRound);
+        var currentRound = game.CurrentRound;
+        await Clients.Group(roomId).SendAsync("ReceiveRoundStarted", currentRound, totalRounds);
 
         var roundMessage = $"ROUND {game.CurrentRound}/{totalRounds} STARTED!";
         await SendSystemMessageToRoom(roomId, roundMessage);
