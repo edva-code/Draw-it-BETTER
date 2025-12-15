@@ -630,6 +630,12 @@ public class GameplayHubTest
     [Test]
     public async Task whenSendCanvasSnapshot_andGeminiReturnsEmptyGuess_thenNoMessageSent()
     {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+        
         var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
 
         _geminiClient
@@ -643,6 +649,25 @@ public class GameplayHubTest
                 It.IsAny<string>(),
                 It.IsAny<object?[]>(),
                 It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+    
+    [Test]
+    public async Task whenSendCanvasSnapshot_andUserNotDrawer_thenDontCallGemini()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+        
+        var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
+
+        Assert.ThrowsAsync<HubException>(async () => await _hub.SendCanvasSnapshot(dto));
+
+        _geminiClient.Verify(
+            c => c.GuessImage(
+                It.IsAny<String>(), It.IsAny<String>()),
             Times.Never);
     }
 
@@ -700,7 +725,7 @@ public class GameplayHubTest
         CreateGame(
             playerCount: 3,
             connectedPlayersIds: new HashSet<long> { UserId, 2, 99 },
-            currentDrawerId: 2,
+            currentDrawerId: UserId,
             wordToDraw: "APPLE");
 
         var drawerUser = new UserModel { Id = 2, Name = "DRAWER", RoomId = RoomId };
@@ -735,7 +760,7 @@ public class GameplayHubTest
                     args.Length == 3 &&
                     (string)args[0]! == aiUser.Name &&
                     (string)args[1]! == "Guessed The Word!" &&
-                    (bool)args[2]! == true),
+                    (bool)args[2]!),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 

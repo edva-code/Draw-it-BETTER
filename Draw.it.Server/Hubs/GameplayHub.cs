@@ -137,6 +137,15 @@ public class GameplayHub : BaseHub<GameplayHub>
 
     public async Task SendCanvasSnapshot(CanvasSnapshotDto dto)
     {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+        var game = _gameService.GetGame(roomId);
+        
+        if (user.Id != game.CurrentDrawerId)
+        {
+            throw new HubException("Only drawer is allowed to send canvas snapshot.");
+        }
+        
         var guess = await _geminiClient.GuessImage(dto.ImageBytes, dto.MimeType);
 
         if (guess.Equals(string.Empty))
