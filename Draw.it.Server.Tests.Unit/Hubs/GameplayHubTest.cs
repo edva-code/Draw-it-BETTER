@@ -56,6 +56,19 @@ public class GameplayHubTest
             Name = "TEST_USER",
             RoomId = RoomId
         };
+        
+        _roomService
+            .Setup(s => s.GetRoom(RoomId))
+            .Returns(new RoomModel
+            {
+                Id = RoomId,
+                HostId = UserId,
+                Settings = new RoomSettingsModel
+                {
+                    NumberOfRounds = 3,
+                    DrawingTime = 60
+                }
+            });
 
         var identity = new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId.ToString()) },
