@@ -46,6 +46,7 @@ flags:
       - draw.it.client/src/main.tsx
 
 ignore:
-  - Draw.it.Server/data/
-  - Draw.it.Server/Integrations/
   - Draw.it.Server/Program.cs
+  - Draw.it.Server/data/
+  - Draw.it.Server/Migrations/
+  - Draw.it.Server/**/*DependencyInjection.cs
