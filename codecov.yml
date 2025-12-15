@@ -1,0 +1,52 @@
+coverage:
+  range: 50..80
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+
+    patch:
+      backend:
+        target: 80%
+        threshold: 1%
+        flags:
+          - backend-unit
+        only_pulls: true
+
+      frontend:
+        target: auto
+        threshold: 1%
+        flags:
+          - frontend-unit
+        only_pulls: true
+
+flag_management:
+  default_rules:
+    carryforward: true
+
+flags:
+  backend-unit:
+    paths:
+      - Draw.it.Server/
+    ignore:
+      - Draw.it.Server/Repositories/Room/DbRoomRepository.cs
+      - Draw.it.Server/Repositories/User/DbUserRepository.cs
+      - Draw.it.Server/Repositories/WordPool/FileStreamWordPoolRepository.cs
+  frontend-unit:
+    paths:
+      - draw.it.client/src/
+    ignore:
+      - draw.it.client/src/constants/
+      - draw.it.client/src/pages/
+      - draw.it.client/src/utils/api.js
+      - draw.it.client/src/utils/HubFactory.jsx
+      - draw.it.client/src/App.tsx
+      - draw.it.client/src/main.tsx
+
+ignore:
+  - Draw.it.Server/Program.cs
+  - Draw.it.Server/data/
+  - Draw.it.Server/Migrations/
+  - Draw.it.Server/**/*DependencyInjection.cs
