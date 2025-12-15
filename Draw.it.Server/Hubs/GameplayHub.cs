@@ -54,6 +54,10 @@ public class GameplayHub : BaseHub<GameplayHub>
             {
                 await StartTurn(roomId, true);
             }
+
+            var word = game.WordToDraw;
+            var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
+            await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
         }
         else
         {
@@ -62,15 +66,9 @@ public class GameplayHub : BaseHub<GameplayHub>
             {
                 await SendSystemMessageToRoom(roomId, $"{user.Name} joined the game");
             }
+
             var waitingMessage = $"Waiting for other players to connect... ({game.ConnectedPlayersIds.Count}/{game.PlayerCount})";
             await Clients.Caller.SendAsync("ReceiveMessage", "System", waitingMessage);
-        }
-
-        var word = game.WordToDraw;
-        if (!string.IsNullOrEmpty(word))
-        {
-            var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
-            await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
         }
 
         await base.OnConnectedAsync();
