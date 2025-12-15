@@ -37,9 +37,12 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         // Manage reconnection or new connection scenarios
         var game = _gameService.GetGame(roomId);
+        var room = _roomService.GetRoom(roomId);
 
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
+
+        await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount)
         {
@@ -66,11 +69,10 @@ public class GameplayHub : BaseHub<GameplayHub>
             await Clients.Caller.SendAsync("ReceiveMessage", "System", waitingMessage);
         }
 
-        var room = _roomService.GetRoom(roomId);
-        var totalRounds = 0;
-        if (room?.Settings != null) totalRounds = room.Settings.NumberOfRounds;
-        var roundInfo = new RoundInfoDto(game.CurrentRound, totalRounds);
-        await Clients.Caller.SendAsync("ReceiveRoundStarted", roundInfo);
+        if (game.CurrentRound > 0)
+        {
+            await Clients.Caller.SendAsync("ReceiveRoundStarted", game.CurrentRound);
+        }
 
         await base.OnConnectedAsync();
         _logger.LogInformation("Connected: User with id={UserId} to gameplay room with roomId={RoomId}", user.Id, roomId);
@@ -212,9 +214,10 @@ public class GameplayHub : BaseHub<GameplayHub>
     {
         var room = _roomService.GetRoom(roomId);
         var game = _gameService.GetGame(roomId);
-        var totalRounds = room?.Settings?.NumberOfRounds ?? 0;
-        var roundInfo = new RoundInfoDto(game.CurrentRound, totalRounds);
-        await Clients.Group(roomId).SendAsync("ReceiveRoundStarted", roundInfo);
+        var totalRounds = 0;
+        if (room?.Settings != null) totalRounds = room.Settings.NumberOfRounds;
+
+        await Clients.Group(roomId).SendAsync("ReceiveRoundStarted", game.CurrentRound);
 
         var roundMessage = $"ROUND {game.CurrentRound}/{totalRounds} STARTED!";
         await SendSystemMessageToRoom(roomId, roundMessage);
