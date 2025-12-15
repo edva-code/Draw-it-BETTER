@@ -1,5 +1,6 @@
 ﻿using Draw.it.Server.Enums;
 using Draw.it.Server.Exceptions;
+using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Models.Game;
 using Draw.it.Server.Models.Room;
 using Draw.it.Server.Models.User;
@@ -297,5 +298,83 @@ public class GameServiceTest
         Assert.That(_game.CurrentRound, Is.EqualTo(4)); // Round advanced past total
 
         _repo.Verify(r => r.Save(_game), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void AddCanvasEvent_Start_AddsNewStroke()
+    {
+        var draw = new DrawDto(
+            Type: DrawType.Start,
+            Point: new Point { X = 1, Y = 2 },
+            Color: Color.Red,
+            Size: 5,
+            Eraser: false
+        );
+
+        _service.AddCanvasEvent(RoomId, draw);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(1));
+        var stroke = _game.CanvasStrokes[0];
+        Assert.That(stroke.Points.Count, Is.EqualTo(1));
+        Assert.That(stroke.Color, Is.EqualTo(Color.Red));
+        Assert.That(stroke.Size, Is.EqualTo(5));
+
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void AddCanvasEvent_Move_AppendsPointToLastStroke()
+    {
+        var stroke = new StrokeDto(new List<Point> { new Point { X = 0, Y = 0 } }, Color.Blue, 3, false);
+        _game.CanvasStrokes.Add(stroke);
+
+        var draw = new DrawDto(
+            Type: DrawType.Move,
+            Point: new Point { X = 5, Y = 5 },
+            Color: Color.Red,
+            Size: 5,
+            Eraser: false
+        );
+
+        _service.AddCanvasEvent(RoomId, draw);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(1));
+        Assert.That(_game.CanvasStrokes[0].Points.Count, Is.EqualTo(2));
+        Assert.That(_game.CanvasStrokes[0].Points.Last().X, Is.EqualTo(5));
+        Assert.That(_game.CanvasStrokes[0].Points.Last().Y, Is.EqualTo(5));
+
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void AddCanvasEvent_NullDraw_DoesNothing()
+    {
+        _service.AddCanvasEvent(RoomId, null!);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(0));
+        _repo.Verify(r => r.Save(It.IsAny<GameModel>()), Times.Never);
+    }
+
+    [Test]
+    public void ClearCanvasStrokes_RemovesAllStrokes()
+    {
+        _game.CanvasStrokes.Add(new StrokeDto(new List<Point> { new Point { X = 1, Y = 1 } }, Color.Black, 2, false));
+
+        _service.ClearCanvasStrokes(RoomId);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(0));
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void GetCanvasStrokes_ReturnsAllStrokesAsReadOnly()
+    {
+        var stroke = new StrokeDto(new List<Point> { new Point { X = 0, Y = 0 } }, Color.Green, 4, false);
+        _game.CanvasStrokes.Add(stroke);
+
+        var strokes = _service.GetCanvasStrokes(RoomId);
+
+        Assert.That(strokes.Count, Is.EqualTo(1));
+        Assert.That(strokes[0], Is.EqualTo(stroke));
     }
 }

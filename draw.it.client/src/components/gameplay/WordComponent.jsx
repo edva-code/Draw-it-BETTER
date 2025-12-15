@@ -1,6 +1,4 @@
-﻿import React, { useState, useEffect, useContext } from "react";
-import {GameplayHubContext} from "@/utils/GameplayHubProvider.jsx";
-
+﻿import React from "react";
 export default function WordComponent({ word }) {
     
     return (
