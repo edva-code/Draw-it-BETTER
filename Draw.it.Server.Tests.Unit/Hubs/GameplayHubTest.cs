@@ -635,7 +635,7 @@ public class GameplayHubTest
             connectedPlayersIds: new HashSet<long> { UserId, 2 },
             currentDrawerId: UserId,
             wordToDraw: "APPLE");
-        
+
         var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
 
         _geminiClient
@@ -651,7 +651,7 @@ public class GameplayHubTest
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
-    
+
     [Test]
     public async Task whenSendCanvasSnapshot_andUserNotDrawer_thenDontCallGemini()
     {
@@ -660,7 +660,7 @@ public class GameplayHubTest
             connectedPlayersIds: new HashSet<long> { UserId, 2 },
             currentDrawerId: 2,
             wordToDraw: "APPLE");
-        
+
         var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
 
         Assert.ThrowsAsync<HubException>(async () => await _hub.SendCanvasSnapshot(dto));
