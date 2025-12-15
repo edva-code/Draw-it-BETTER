@@ -54,9 +54,9 @@ export default function GameplayScreen() {
             setMessages([]);
         });
 
-        gameplayConnection.on("ReceiveRoundStarted", (currentR, totalR) => {
-            setCurrentRound(currentR);
-            setTotalRounds(totalR);
+        gameplayConnection.on("ReceiveRoundStarted", (roundInfo) => {
+            setCurrentRound(roundInfo.currentRound);
+            setTotalRounds(roundInfo.totalRounds);
         });
 
         gameplayConnection.on("ReceivePlayerStatuses", (statuses) => {
