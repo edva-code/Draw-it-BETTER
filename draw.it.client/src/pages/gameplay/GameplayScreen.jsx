@@ -54,9 +54,12 @@ export default function GameplayScreen() {
             setMessages([]);
         });
 
-        gameplayConnection.on("ReceiveRoundStarted", (roundInfo) => {
-            setCurrentRound(roundInfo.currentRound);
-            setTotalRounds(roundInfo.totalRounds);
+        gameplayConnection.on("ReceiveGameRounds", (rounds) => {
+            setTotalRounds(rounds);
+        });
+
+        gameplayConnection.on("ReceiveRoundStarted", (currentRoundNumber) => {
+            setCurrentRound(currentRoundNumber);
         });
 
         gameplayConnection.on("ReceivePlayerStatuses", (statuses) => {
@@ -80,6 +83,7 @@ export default function GameplayScreen() {
             gameplayConnection.off("ReceiveMessage");
             gameplayConnection.off("ReceiveTurnStarted");
             gameplayConnection.off("ReceiveRoundStarted");
+            gameplayConnection.off("ReceiveGameRounds");
             gameplayConnection.off("ReceiveRoundEnded");
             gameplayConnection.off("ReceiveGameEnded");
             gameplayConnection.off("ReceivePlayerStatuses");
