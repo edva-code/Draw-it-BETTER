@@ -18,7 +18,6 @@ export default function GameplayScreen() {
     const [scoreModalScores, setScoreModalScores] = useState([]);
     const [playerStatuses, setPlayerStatuses] = useState([]);
     const [myName, setMyName] = useState("");
-    const [isDrawer, setIsDrawer] = useState(false);
     const [currentWord, setCurrentWord] = useState("");
     const [timer, setTimer] = useState(0);
 
@@ -87,12 +86,6 @@ export default function GameplayScreen() {
             gameplayConnection.off("ReceivePlayerStatuses");
         };
     }, [gameplayConnection, roomId]);
-
-    useEffect(() => {
-        if (!myName || playerStatuses.length === 0) return;
-        const drawer = playerStatuses.some(p => p.name === myName && p.isDrawer);
-        setIsDrawer(drawer);
-    }, [myName, playerStatuses]);
     
     const handleSendMessage = async (message) => {
         try {
@@ -102,7 +95,10 @@ export default function GameplayScreen() {
             alert("Error sending message. Please try again.");
         }        
     };
-    
+
+    const isDrawer = playerStatuses.some(
+        (player) => player.isDrawer && player.name === myName
+    );
     
     return (
         // FIX 1: Use w-screen h-screen and overflow-hidden to contain the layout.
