@@ -41,6 +41,12 @@ public class GameplayHub : BaseHub<GameplayHub>
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
 
+        var strokes = _gameService.GetCanvasStrokes(roomId);
+        if (strokes != null && strokes.Any())
+        {
+            await Clients.Caller.SendAsync("ReceiveCanvasState", strokes);
+        }
+
         if (game.ConnectedPlayersIds.Count == game.PlayerCount)
         {
             // All players are connected - game in progress
@@ -60,15 +66,12 @@ public class GameplayHub : BaseHub<GameplayHub>
             await Clients.Caller.SendAsync("ReceiveMessage", "System", waitingMessage);
         }
 
-        var strokes = _gameService.GetCanvasStrokes(roomId);
-        if (strokes != null && strokes.Any())
-        {
-            await Clients.Caller.SendAsync("ReceiveCanvasState", strokes);
-        }
-
         var word = game.WordToDraw;
-        var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
-        await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
+        if (!string.IsNullOrEmpty(word))
+        {
+            var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
+            await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
+        }
 
         await base.OnConnectedAsync();
         _logger.LogInformation("Connected: User with id={UserId} to gameplay room with roomId={RoomId}", user.Id, roomId);
