@@ -65,7 +65,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         {
             await Clients.Caller.SendAsync("ReceiveCanvasState", strokes);
         }
-        
+
         var word = game.WordToDraw;
         var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
         await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
