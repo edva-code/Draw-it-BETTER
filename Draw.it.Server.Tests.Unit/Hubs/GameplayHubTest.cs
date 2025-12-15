@@ -258,7 +258,7 @@ public class GameplayHubTest
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(true);
-        
+
         _userService
             .Setup(s => s.GetUser(game.CurrentDrawerId))
             .Returns(new UserModel
