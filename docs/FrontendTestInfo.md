@@ -6,7 +6,6 @@ Run inside draw.it.client:
 npm install -D vitest
 ````
 
-
 ### Assertions
 ```js
 expect(result).toBe(5);
