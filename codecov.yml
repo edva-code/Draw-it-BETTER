@@ -1,0 +1,49 @@
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+flag_management:
+  default_rules:
+    carryforward: true
+
+flags:
+  backend-unit:
+    paths:
+      - Draw.it.Server/
+  frontend-unit:
+    paths:
+      - draw.it.client/
+
+coverage:
+  range: 50..80
+  round: down
+  precision: 2
+  
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+        if_ci_failed: error
+      backend:
+        target: 80%
+        threshold: 1%
+        paths:
+          - "Draw.it.Server/**"
+        flags:
+          - backend-unit
+      frontend:
+        target: 80%
+        threshold: 1%
+        paths:
+          - "draw.it.client/**"
+        flags:
+          - frontend-unit
+    
+    patch:
+      default:
+        target: 70%
+        threshold: 1%
+        if_ci_failed: error
