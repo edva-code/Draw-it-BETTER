@@ -34,7 +34,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSignalR(options =>
     {
-        options.MaximumReceiveMessageSize = 1024 * 512; // 500kb
+        options.MaximumReceiveMessageSize = 1024 * 512; // 512kb
     })
     .AddJsonProtocol(options =>
     {
