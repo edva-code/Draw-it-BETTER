@@ -73,7 +73,7 @@ public class GameplayHubTest
             .Setup(s => s.GetUser(UserId))
             .Returns(_user);
 
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
         SetupUsersInRoom(_user);
 
         _clients.Setup(c => c.Caller).Returns(_callerClient.Object);
@@ -126,7 +126,7 @@ public class GameplayHubTest
         var otherUser = new UserModel { Id = 2, Name = "OTHER_USER", RoomId = RoomId };
         SetupUsersInRoom(_user, otherUser);
 
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -189,7 +189,7 @@ public class GameplayHubTest
 
         var otherUser = new UserModel { Id = 2, Name = "OTHER_USER", RoomId = RoomId };
         SetupUsersInRoom(_user, otherUser);
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -249,7 +249,7 @@ public class GameplayHubTest
 
         SetupUsersInRoom(_user, drawerUser, otherUser);
 
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -258,7 +258,20 @@ public class GameplayHubTest
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(true);
-
+        
+        _userService
+            .Setup(s => s.GetUser(game.CurrentDrawerId))
+            .Returns(new UserModel
+            {
+                Id = 2,
+                Name = "DRAWER_USER",
+                RoomId = RoomId
+            });
+        var room = CreateRoom(2, 3);
+        _roomService
+            .Setup(s => s.GetRoomSettings(RoomId))
+            // Assuming 'CreateRoom' creates a room object with a 'Settings' property that has 'DrawingTime'
+            .Returns(room.Settings);
         await _hub.OnConnectedAsync();
 
         VerifyAddedToGroupOnce();
@@ -333,7 +346,7 @@ public class GameplayHubTest
         var other2 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
         SetupUsersInRoom(_user, other1, other2);
 
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -380,7 +393,7 @@ public class GameplayHubTest
         var otherUser = new UserModel { Id = 3, Name = "OTHER", RoomId = RoomId };
 
         SetupUsersInRoom(_user, drawerUser, otherUser);
-        CreateRoom(hostId: 2, numberOfRounds: 3, hasAiPlayer: false);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -935,7 +948,7 @@ public class GameplayHubTest
         return game;
     }
 
-    private RoomModel CreateRoom(long hostId, int numberOfRounds, bool hasAiPlayer)
+    private RoomModel CreateRoom(long hostId, int numberOfRounds, bool hasAiPlayer = false)
     {
         var room = new RoomModel
         {
