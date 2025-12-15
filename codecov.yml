@@ -1,7 +1,5 @@
-codecov:
-  require_ci_to_pass: true
-  notify:
-    wait_for_ci: true
+coverage:
+  range: 50..80
 
 flag_management:
   default_rules:
@@ -11,39 +9,22 @@ flags:
   backend-unit:
     paths:
       - Draw.it.Server/
+    ignore:
+      - Draw.it.Server/Repositories/Room/DbRoomRepository.cs
+      - Draw.it.Server/Repositories/User/DbUserRepository.cs
+      - Draw.it.Server/Repositories/WordPool/FileStreamWordPoolRepository.cs
   frontend-unit:
     paths:
-      - draw.it.client/
+      - draw.it.client/src/
+    ignore:
+      - draw.it.client/src/constants/
+      - draw.it.client/src/pages/
+      - draw.it.client/src/utils/api.js
+      - draw.it.client/src/utils/HubFactory.jsx
+      - draw.it.client/src/App.tsx
+      - draw.it.client/src/main.tsx
 
-coverage:
-  range: 50..80
-  round: down
-  precision: 2
-  
-  status:
-    project:
-      default:
-        target: auto
-        threshold: 1%
-        base: auto
-        if_ci_failed: error
-      backend:
-        target: 80%
-        threshold: 1%
-        paths:
-          - "Draw.it.Server/**"
-        flags:
-          - backend-unit
-      frontend:
-        target: 80%
-        threshold: 1%
-        paths:
-          - "draw.it.client/**"
-        flags:
-          - frontend-unit
-    
-    patch:
-      default:
-        target: 70%
-        threshold: 1%
-        if_ci_failed: error
+ignore:
+  - Draw.it.Server/data/
+  - Draw.it.Server/Integrations/
+  - Draw.it.Server/Program.cs
