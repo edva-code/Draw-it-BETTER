@@ -56,19 +56,6 @@ public class GameplayHubTest
             Name = "TEST_USER",
             RoomId = RoomId
         };
-        
-        _roomService
-            .Setup(s => s.GetRoom(RoomId))
-            .Returns(new RoomModel
-            {
-                Id = RoomId,
-                HostId = UserId,
-                Settings = new RoomSettingsModel
-                {
-                    NumberOfRounds = 3,
-                    DrawingTime = 60
-                }
-            });
 
         var identity = new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, UserId.ToString()) },
@@ -164,6 +151,8 @@ public class GameplayHubTest
     {
         var game = CreateGame(3, new HashSet<long> { UserId, 2 }, 2, "APPLE");
 
+        var room = CreateRoom(2, 3, 60);
+
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(true);
@@ -211,6 +200,8 @@ public class GameplayHubTest
     public async Task whenOnConnected_andWaitingForPlayers_andReconnected_thenWaitingMessageSentToCaller()
     {
         var game = CreateGame(3, new HashSet<long> { UserId, 2 }, 2, "APPLE");
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -266,11 +257,8 @@ public class GameplayHubTest
                 Name = "DRAWER_USER",
                 RoomId = RoomId
             });
-        var room = CreateRoom(2, 3);
-        _roomService
-            .Setup(s => s.GetRoomSettings(RoomId))
-            // Assuming 'CreateRoom' creates a room object with a 'Settings' property that has 'DrawingTime'
-            .Returns(room.Settings);
+        var room = CreateRoom(2, 3, 60);
+
         await _hub.OnConnectedAsync();
 
         VerifyAddedToGroupOnce();
@@ -309,6 +297,8 @@ public class GameplayHubTest
     {
         var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, UserId, "APPLE");
 
+        var room = CreateRoom(2, 3, 60);
+
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(false);
@@ -338,6 +328,8 @@ public class GameplayHubTest
     public async Task whenOnConnected_andGameStarted_andReconnected_andUserIsNotDrawer_thenSendMaskedWordToCaller()
     {
         var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, 2, "APPLE");
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -421,7 +413,7 @@ public class GameplayHubTest
 
         SetupAddGuessedPlayerCallback(false, false, false);
 
-        var room = CreateRoom(2, 3);
+        var room = CreateRoom(2, 3, 60);
 
         await _hub.SendMessage("APPLE");
 
@@ -647,7 +639,7 @@ public class GameplayHubTest
         return game;
     }
 
-    private RoomModel CreateRoom(int hostId, int numberOfRounds)
+    private RoomModel CreateRoom(int hostId, int numberOfRounds, int drawingTime)
     {
         var room = new RoomModel
         {
@@ -655,13 +647,18 @@ public class GameplayHubTest
             HostId = hostId,
             Settings = new RoomSettingsModel
             {
-                NumberOfRounds = numberOfRounds
+                NumberOfRounds = numberOfRounds,
+                DrawingTime = drawingTime
             }
         };
 
         _roomService
             .Setup(s => s.GetRoom(RoomId))
             .Returns(room);
+
+        _roomService
+            .Setup(s => s.GetRoomSettings(RoomId))
+            .Returns(room.Settings);
 
         return room;
     }
