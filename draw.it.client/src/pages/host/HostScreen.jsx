@@ -251,7 +251,7 @@ function HostScreen() {
                                 />
                             </div>
                             <div className="setting-item">
-                                <label htmlFor="numberOfRounds">Add AI player:</label>
+                                <label htmlFor="addAiPlayer">Add AI player:</label>
                                 <Input
                                     id="addAiPlayer"
                                     type="checkbox"
