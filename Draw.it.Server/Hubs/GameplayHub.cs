@@ -53,7 +53,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
         
-        // If a person reconnects
+        // If a person connects when the game already began (for example refreshes the screen)
         if (game.TimerStarted)
         {
             var correctedRoundDur = (game.RoundEnd - DateTime.Now).TotalSeconds; // what time is left on the timer
