@@ -932,7 +932,7 @@ public class GameplayHubTest
         Assert.That(result[2].HasGuessed, Is.True);
     }
 
-[Test]
+    [Test]
     public async Task whenOnConnected_andGameTimerStarted_andReconnected_thenReceiveTimerState()
     {
         // ARRANGE
@@ -940,11 +940,11 @@ public class GameplayHubTest
         const int totalDuration = 60;
         var drawerId = 2;
         var timeElapsedSeconds = 10;
-        
+
         // Define the fixed RoundEnd time based on current time plus the full duration
         // We calculate this point in the future relative to a known start point.
         // For the test, we'll use a RoundEnd that is 50 seconds in the future
-        var expectedRoundEnd = DateTime.Now.AddSeconds(totalDuration - timeElapsedSeconds); 
+        var expectedRoundEnd = DateTime.Now.AddSeconds(totalDuration - timeElapsedSeconds);
 
         var game = CreateGame(
             playerCount: 3,
@@ -959,11 +959,11 @@ public class GameplayHubTest
         var other2 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
         SetupUsersInRoom(_user, other1, other2);
         CreateRoom(hostId: drawerId, numberOfRounds: 3);
-        
+
         // Ensure the connection is treated as a reconnection, not a start
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
-            .Returns(false); 
+            .Returns(false);
 
         // ACT
         await _hub.OnConnectedAsync();
@@ -979,7 +979,7 @@ public class GameplayHubTest
                     (double)args[1]! > 49.0 && (double)args[1]! < 51.0), // Time remaining is approx. 50s
                 It.IsAny<CancellationToken>()),
             Times.Once);
-            
+
         // Verify the game flow for a reconnecting player continued correctly
         _callerClient.Verify(
             c => c.SendCoreAsync(
