@@ -22,7 +22,7 @@ public class GameplayHub : BaseHub<GameplayHub>
     private const int TurnDelayMs = 3000;
     private const int RoundDelayMs = 6000;
     private const int EndGameDelayMs = 10000;
-    
+
     public GameplayHub(
         ILogger<GameplayHub> logger,
         IUserService userService,
@@ -52,7 +52,7 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
-        
+
         // If a person connects when the game already began (for example refreshes the screen)
         if (game.TimerStarted)
         {
@@ -179,7 +179,9 @@ public class GameplayHub : BaseHub<GameplayHub>
 
     private async Task ManageTurnEnding(string roomId, string wordToDraw, bool roundEnded, bool gameEnded)
     {
-        _gameService.GetGame(roomId).CurrentPhase = GamePhase.EndingPhase;
+        var game = _gameService.GetGame(roomId);
+        game.CurrentPhase = GamePhase.EndingPhase;
+        game.TimerStarted = false;
         await EndTurn(roomId, wordToDraw);
         await Task.Delay(TurnDelayMs);
 
@@ -244,8 +246,6 @@ public class GameplayHub : BaseHub<GameplayHub>
     {
         var user = await ResolveUserAsync();
         var roomId = user.RoomId!;
-        var game = _gameService.GetGame(roomId);
-        game.TimerStarted = false;
         _gameService.HandleTimerEnd(roomId, out string wordToDraw, out bool roundEnded, out bool gameEnded,
             out bool alreadyCalled);
         if (!alreadyCalled) await ManageTurnEnding(roomId, wordToDraw, roundEnded, gameEnded);
