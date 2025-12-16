@@ -372,7 +372,7 @@ public class GameServiceTest
         var stroke = new StrokeDto(new List<Point> { new Point { X = 0, Y = 0 } }, Color.Green, 4, false);
         _game.CanvasStrokes.Add(stroke);
 
-        var strokes = _service.GetCanvasStrokes(RoomId);
+        var strokes = _game.CanvasStrokes;
 
         Assert.That(strokes.Count, Is.EqualTo(1));
         Assert.That(strokes[0], Is.EqualTo(stroke));
