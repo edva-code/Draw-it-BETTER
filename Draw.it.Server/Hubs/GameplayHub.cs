@@ -1,5 +1,6 @@
 using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Enums;
+using Draw.it.Server.Integrations.Gemini;
 using Draw.it.Server.Models.User;
 using Draw.it.Server.Services.Game;
 using Draw.it.Server.Services.Room;
@@ -16,15 +17,22 @@ namespace Draw.it.Server.Hubs;
 public class GameplayHub : BaseHub<GameplayHub>
 {
     private readonly IGameService _gameService;
+    private readonly IGeminiClient _geminiClient;
 
     private const int TurnDelayMs = 3000;
     private const int RoundDelayMs = 6000;
     private const int EndGameDelayMs = 10000;
 
-    public GameplayHub(ILogger<GameplayHub> logger, IUserService userService, IGameService gameService, IRoomService roomService)
-        : base(logger, userService, roomService)
+    public GameplayHub(
+        ILogger<GameplayHub> logger,
+        IUserService userService,
+        IGameService gameService,
+        IRoomService roomService,
+        IGeminiClient geminiClient
+    ) : base(logger, userService, roomService)
     {
         _gameService = gameService;
+        _geminiClient = geminiClient;
     }
 
     public override async Task OnConnectedAsync()
@@ -45,7 +53,8 @@ public class GameplayHub : BaseHub<GameplayHub>
         await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
 
-        if (game.ConnectedPlayersIds.Count == game.PlayerCount)
+        if (game.ConnectedPlayersIds.Count == game.PlayerCount
+            || (room.Settings.HasAiPlayer && game.ConnectedPlayersIds.Count == game.PlayerCount - 1))
         {
             // All players are connected - game in progress
             if (added)
@@ -57,6 +66,12 @@ public class GameplayHub : BaseHub<GameplayHub>
                 var word = game.WordToDraw;
                 var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
                 await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
+            }
+
+            // Don't send screen captures of canvas if no AI
+            if (!room.Settings.HasAiPlayer)
+            {
+                await Clients.User(game.CurrentDrawerId.ToString()).SendAsync("AiGuessedCorrectly");
             }
         }
         else
@@ -83,8 +98,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         var drawerId = game.CurrentDrawerId;
         var wordToDraw = game.WordToDraw;
 
-        var isCorrectGuess = string.Equals(message.Trim(), wordToDraw,
-            StringComparison.OrdinalIgnoreCase); // check if the word is the word to guess
+        var isCorrectGuess = CheckCorrectGuess(message, wordToDraw);
 
         if (drawerId == user.Id || !isCorrectGuess)
         {
@@ -93,15 +107,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         }
 
         await Clients.Caller.SendAsync("ReceiveWordToDraw", wordToDraw);
-        await Clients.Group(roomId).SendAsync("ReceiveMessage", user.Name, "Guessed The Word!", true);
-
-        _gameService.AddGuessedPlayer(roomId, user.Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
-
-        var playerStatuses = GetPlayerStatuses(roomId);
-        await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
-
-        if (turnEnded) await ManageTurnEnding(roomId, wordToDraw, roundEnded, gameEnded);
-
+        await SendCorrectAnswer(roomId, user, wordToDraw);
     }
 
     public async Task SendDraw(DrawDto drawDto)
@@ -137,6 +143,28 @@ public class GameplayHub : BaseHub<GameplayHub>
         await Clients.GroupExcept(roomId, Context.ConnectionId).SendAsync("ReceiveClear");
     }
 
+    public async Task SendCanvasSnapshot(CanvasSnapshotDto dto)
+    {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+        var game = _gameService.GetGame(roomId);
+
+        if (user.Id != game.CurrentDrawerId)
+        {
+            throw new HubException("Only drawer is allowed to send canvas snapshot.");
+        }
+
+        var guess = await _geminiClient.GuessImage(dto.ImageBytes, dto.MimeType);
+
+        if (guess.Equals(string.Empty))
+        {
+            return;
+        }
+
+        await SendMessageAi(guess);
+    }
+
+
     private async Task SendSystemMessageToRoom(string roomId, string message)
     {
         await Clients.Group(roomId).SendAsync("ReceiveMessage", "System", message);
@@ -171,7 +199,6 @@ public class GameplayHub : BaseHub<GameplayHub>
         var game = _gameService.GetGame(roomId);
         var maskedWord = _gameService.GetMaskedWord(game.WordToDraw);
         var drawerId = game.CurrentDrawerId.ToString();
-        var drawerName = _userService.GetUser(game.CurrentDrawerId).Name;
 
         _gameService.ClearCanvasStrokes(roomId);
 
@@ -291,5 +318,40 @@ public class GameplayHub : BaseHub<GameplayHub>
         }).OrderByDescending(p => p.Score).ToList();
 
         return statuses;
+    }
+
+    private async Task SendMessageAi(string message)
+    {
+        var user = await ResolveUserAsync(); // Get game from the user that is the drawer
+        var roomId = user.RoomId!;
+        var game = _gameService.GetGame(roomId);
+
+        var aiUser = _userService.GetAiUserInRoom(game.RoomId);
+
+        if (!CheckCorrectGuess(message, game.WordToDraw))
+        {
+            await Clients.Group(game.RoomId).SendAsync("ReceiveMessage", aiUser.Name, message);
+            return;
+        }
+
+        await Clients.User(game.CurrentDrawerId.ToString()).SendAsync("AiGuessedCorrectly");
+        await SendCorrectAnswer(game.RoomId, aiUser, game.WordToDraw);
+    }
+
+    private bool CheckCorrectGuess(string message, string wordToDraw)
+    {
+        return string.Equals(message.Trim(), wordToDraw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task SendCorrectAnswer(string roomId, UserModel user, string wordToDraw)
+    {
+        await Clients.Group(roomId).SendAsync("ReceiveMessage", user.Name, "Guessed The Word!", true);
+
+        _gameService.AddGuessedPlayer(roomId, user.Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+
+        var playerStatuses = GetPlayerStatuses(roomId);
+        await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
+
+        if (turnEnded) await ManageTurnEnding(roomId, wordToDraw, roundEnded, gameEnded);
     }
 }
