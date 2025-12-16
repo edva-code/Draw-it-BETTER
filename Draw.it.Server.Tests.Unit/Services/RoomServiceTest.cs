@@ -461,6 +461,37 @@ public class RoomServiceTest
     }
 
     [Test]
+    public void whenStartGame_andOnePlayerNoAi_thenThrowAppException()
+    {
+        var user = CreateUser(UserId, UserName, roomId: RoomId);
+
+        var settings = new RoomSettingsModel();
+        settings.HasAiPlayer = false;
+        var room = CreateRoom(RoomId, hostId: UserId, status: RoomStatus.InLobby, settings);
+
+        _roomRepository
+            .Setup(r => r.FindById(RoomId))
+            .Returns(room);
+
+        _roomRepository
+            .Setup(r => r.ExistsById(RoomId))
+            .Returns(true);
+
+        var players = new List<UserModel>
+        {
+            CreateUser(UserId, UserName, roomId: RoomId, isReady: true),
+        };
+
+        _userRepository
+            .Setup(r => r.FindByRoomId(RoomId))
+            .Returns(players);
+
+        Assert.Throws<AppException>(() => _roomService.StartGame(RoomId, user));
+
+        _roomRepository.Verify(r => r.Save(It.IsAny<RoomModel>()), Times.Never);
+    }
+    
+    [Test]
     public void whenStartGame_thenStatusSetToInGameAndRoomSaved()
     {
         var user = CreateUser(UserId, UserName, roomId: RoomId);
@@ -508,7 +539,6 @@ public class RoomServiceTest
         var players = new List<UserModel>
         {
             CreateUser(UserId, UserName, roomId: RoomId, isReady: true),
-            CreateUser(OtherUserId, OtherUserName, roomId: RoomId, isReady: true)
         };
 
         _userRepository
