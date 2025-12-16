@@ -49,9 +49,9 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
-        
+
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
-        
+
         if (game.ConnectedPlayersIds.Count == game.PlayerCount
             || (room.Settings.HasAiPlayer && game.ConnectedPlayersIds.Count == game.PlayerCount - 1))
         {
