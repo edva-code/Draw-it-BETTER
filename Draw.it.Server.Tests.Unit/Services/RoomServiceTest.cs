@@ -490,7 +490,7 @@ public class RoomServiceTest
 
         _roomRepository.Verify(r => r.Save(It.IsAny<RoomModel>()), Times.Never);
     }
-    
+
     [Test]
     public void whenStartGame_thenStatusSetToInGameAndRoomSaved()
     {
