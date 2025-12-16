@@ -56,8 +56,8 @@ public class GameplayHub : BaseHub<GameplayHub>
         // If a person reconnects
         if (game.TimerStarted)
         {
-            var correctedRoundDur = (game.RoundEnd - DateTime.Now) / 1000; // what time is left on the timer
-            await Clients.Group(user.Id.ToString()).SendAsync("ReceiveTimer", game.RoundEnd.ToString("o"), correctedRoundDur);
+            var correctedRoundDur = (game.RoundEnd - DateTime.Now).TotalSeconds; // what time is left on the timer
+            await Clients.Caller.SendAsync("ReceiveTimer", game.RoundEnd.ToString("o"), correctedRoundDur);
         }
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount
