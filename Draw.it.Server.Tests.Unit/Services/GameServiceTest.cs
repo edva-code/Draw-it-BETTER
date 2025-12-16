@@ -173,6 +173,31 @@ public class GameServiceTest
     }
 
     [Test]
+    public void whenAddGuessedPlayer_thenDrawerGetsPointsForCorrectGuess()
+    {
+        // Arrange
+        _roomService.Setup(r => r.GetUsersInRoom(RoomId))
+            .Returns(new List<UserModel>
+            {
+                new UserModel { Id = DrawerId, Name = "Drawer" },
+                new UserModel { Id = Player2Id, Name = "Player2" }
+            });
+
+        // Act 
+        _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+
+        // Assert 
+        Assert.That(_game.RoundScores[DrawerId], Is.EqualTo(1));
+        Assert.That(_game.RoundScores[Player2Id], Is.EqualTo(2));
+
+        Assert.That(turnEnded, Is.True);
+        Assert.That(roundEnded, Is.False);
+        Assert.That(gameEnded, Is.False);
+
+        _repo.Verify(r => r.Save(It.IsAny<GameModel>()), Times.Exactly(2));
+    }
+
+    [Test]
     public void whenGetMaskedWord_thenMaskNonSpaces()
     {
         var masked = _service.GetMaskedWord("DOG CAT");
