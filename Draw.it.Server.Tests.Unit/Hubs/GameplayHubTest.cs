@@ -128,6 +128,8 @@ public class GameplayHubTest
 
         CreateRoom(hostId: 2, numberOfRounds: 3);
 
+        var room = CreateRoom(2, 3, 60);
+
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(true);
@@ -190,6 +192,8 @@ public class GameplayHubTest
         var otherUser = new UserModel { Id = 2, Name = "OTHER_USER", RoomId = RoomId };
         SetupUsersInRoom(_user, otherUser);
         CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -267,11 +271,8 @@ public class GameplayHubTest
                 Name = "DRAWER_USER",
                 RoomId = RoomId
             });
-        var room = CreateRoom(2, 3);
-        _roomService
-            .Setup(s => s.GetRoomSettings(RoomId))
-            // Assuming 'CreateRoom' creates a room object with a 'Settings' property that has 'DrawingTime'
-            .Returns(room.Settings);
+        var room = CreateRoom(2, 3, 60);
+
         await _hub.OnConnectedAsync();
 
         VerifyAddedToGroupOnce();
@@ -348,6 +349,8 @@ public class GameplayHubTest
 
         CreateRoom(hostId: 2, numberOfRounds: 3);
 
+        var room = CreateRoom(2, 3, 60);
+
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
             .Returns(false); // reconnected
@@ -394,6 +397,8 @@ public class GameplayHubTest
 
         SetupUsersInRoom(_user, drawerUser, otherUser);
         CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -973,7 +978,7 @@ public class GameplayHubTest
         return game;
     }
 
-    private RoomModel CreateRoom(long hostId, int numberOfRounds, bool hasAiPlayer = false)
+    private RoomModel CreateRoom(long hostId, int numberOfRounds, int drawingTime = 60, bool hasAiPlayer = false)
     {
         var room = new RoomModel
         {
@@ -982,13 +987,18 @@ public class GameplayHubTest
             Settings = new RoomSettingsModel
             {
                 NumberOfRounds = numberOfRounds,
-                HasAiPlayer = hasAiPlayer
+                HasAiPlayer = hasAiPlayer,
+                DrawingTime = drawingTime
             }
         };
 
         _roomService
             .Setup(s => s.GetRoom(RoomId))
             .Returns(room);
+
+        _roomService
+            .Setup(s => s.GetRoomSettings(RoomId))
+            .Returns(room.Settings);
 
         return room;
     }

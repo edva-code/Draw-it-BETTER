@@ -6,6 +6,7 @@ import { GameplayHubContext } from "@/utils/GameplayHubProvider.jsx";
 import ScoreModal from "@/components/modal/ScoreModal.jsx";
 import TimerComponent from "@/components/gameplay/TimerComponent.jsx";
 import PlayerStatusList from "@/components/gameplay/PlayerStatusList";
+import RoundComponent from "@/components/gameplay/RoundComponent";
 import api from "@/utils/api.js";
 
 export default function GameplayScreen() {
@@ -19,6 +20,8 @@ export default function GameplayScreen() {
     const [playerStatuses, setPlayerStatuses] = useState([]);
     const [myName, setMyName] = useState("");
     const [timer, setTimer] = useState(0);
+    const [currentRound, setCurrentRound] = useState(1);
+    const [totalRounds, setTotalRounds] = useState(null);
 
     useEffect(() => {
         const fetchMyName = async () => {
@@ -51,7 +54,12 @@ export default function GameplayScreen() {
             setMessages([]);
         });
 
-        gameplayConnection.on("ReceiveRoundStarted", () => {
+        gameplayConnection.on("ReceiveGameRounds", (rounds) => {
+            setTotalRounds(rounds);
+        });
+
+        gameplayConnection.on("ReceiveRoundStarted", (currentRoundNumber) => {
+            setCurrentRound(currentRoundNumber);
         });
 
         gameplayConnection.on("ReceivePlayerStatuses", (statuses) => {
@@ -75,6 +83,7 @@ export default function GameplayScreen() {
             gameplayConnection.off("ReceiveMessage");
             gameplayConnection.off("ReceiveTurnStarted");
             gameplayConnection.off("ReceiveRoundStarted");
+            gameplayConnection.off("ReceiveGameRounds");
             gameplayConnection.off("ReceiveRoundEnded");
             gameplayConnection.off("ReceiveGameEnded");
             gameplayConnection.off("ReceivePlayerStatuses");
@@ -101,6 +110,7 @@ export default function GameplayScreen() {
 
             {/* Canvas Wrapper: w-3/4 and h-full remains correct */}
             <div className="relative w-3/4 h-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col mr-4">
+                <RoundComponent currentRound={currentRound} totalRounds={totalRounds} />
                 <TimerComponent />
                 <DrawingCanvas isDrawer={isDrawer} />
             </div>
