@@ -22,11 +22,7 @@ public class GameplayHub : BaseHub<GameplayHub>
     private const int TurnDelayMs = 3000;
     private const int RoundDelayMs = 6000;
     private const int EndGameDelayMs = 10000;
-
-    private DateTime roundEnd; // for reconnecting, to get the round end time
-    private Boolean timerStarted = false; // flag for reconnecting to see if the round has started or not
-    // and also when people connect we do not want to start the timer immediatel, plus there are delays above
-
+    
     public GameplayHub(
         ILogger<GameplayHub> logger,
         IUserService userService,
