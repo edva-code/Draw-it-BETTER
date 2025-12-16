@@ -37,9 +37,12 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         // Manage reconnection or new connection scenarios
         var game = _gameService.GetGame(roomId);
+        var room = _roomService.GetRoom(roomId);
 
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
+
+        await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount)
         {
