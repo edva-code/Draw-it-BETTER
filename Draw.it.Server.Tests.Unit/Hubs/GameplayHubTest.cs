@@ -932,6 +932,63 @@ public class GameplayHubTest
         Assert.That(result[2].HasGuessed, Is.True);
     }
 
+[Test]
+    public async Task whenOnConnected_andGameTimerStarted_andReconnected_thenReceiveTimerState()
+    {
+        // ARRANGE
+        // 1. Set up the game state as if the timer started 10 seconds ago (60 - 10 = 50s remaining)
+        const int totalDuration = 60;
+        var drawerId = 2;
+        var timeElapsedSeconds = 10;
+        
+        // Define the fixed RoundEnd time based on current time plus the full duration
+        // We calculate this point in the future relative to a known start point.
+        // For the test, we'll use a RoundEnd that is 50 seconds in the future
+        var expectedRoundEnd = DateTime.Now.AddSeconds(totalDuration - timeElapsedSeconds); 
+
+        var game = CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, drawerId, 3 },
+            currentDrawerId: drawerId,
+            wordToDraw: "APPLE",
+            timerStarted: true, // Key: Timer is running
+            roundEnd: expectedRoundEnd // Key: Set the deadline
+        );
+
+        var other1 = new UserModel { Id = drawerId, Name = "P2", RoomId = RoomId };
+        var other2 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
+        SetupUsersInRoom(_user, other1, other2);
+        CreateRoom(hostId: drawerId, numberOfRounds: 3);
+        
+        // Ensure the connection is treated as a reconnection, not a start
+        _gameService
+            .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
+            .Returns(false); 
+
+        // ACT
+        await _hub.OnConnectedAsync();
+
+        // ASSERT
+        // Verify the timer message was sent to the reconnecting client (Caller)
+        _callerClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveTimer",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == expectedRoundEnd.ToString("o") && // Deadline is correct
+                    (double)args[1]! > 49.0 && (double)args[1]! < 51.0), // Time remaining is approx. 50s
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+            
+        // Verify the game flow for a reconnecting player continued correctly
+        _callerClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveWordToDraw",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once); // Should receive the masked word
+    }
+
 
     private class TestableGameplayHub : GameplayHub
     {
@@ -956,7 +1013,9 @@ public class GameplayHubTest
         HashSet<long> connectedPlayersIds,
         long currentDrawerId,
         string wordToDraw,
-        int currentRound = 1)
+        int currentRound = 1,
+        bool timerStarted = false,
+        DateTime? roundEnd = null)
     {
         var game = new GameModel
         {
@@ -968,7 +1027,10 @@ public class GameplayHubTest
             CurrentRound = currentRound,
             TotalScores = new Dictionary<long, int>(),
             RoundScores = new Dictionary<long, int>(),
-            GuessedPlayersIds = new List<long>()
+            GuessedPlayersIds = new List<long>(),
+            TimerStarted = timerStarted,
+            RoundEnd = roundEnd ?? DateTime.MinValue,
+            CurrentPhase = GamePhase.DrawingPhase
         };
 
         _gameService
