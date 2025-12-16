@@ -54,11 +54,10 @@ public class GameplayHub : BaseHub<GameplayHub>
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
         
         // If a person reconnects
-        if (timerStarted)
+        if (game.TimerStarted)
         {
-            var roundDur = room.Settings.DrawingTime;
-            var correctedRoundDur = (roundEnd - DateTime.Now) / 1000;
-            await Clients.Group(roomId).SendAsync("ReceiveTimer", roundEnd.ToString("o"), correctedRoundDur);
+            var correctedRoundDur = (game.RoundEnd - DateTime.Now) / 1000; // what time is left on the timer
+            await Clients.Group(user.Id.ToString()).SendAsync("ReceiveTimer", game.RoundEnd.ToString("o"), correctedRoundDur);
         }
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount
@@ -231,21 +230,22 @@ public class GameplayHub : BaseHub<GameplayHub>
 
     private async Task StartTimer(string roomId)
     {
-        timerStarted = true;
+        var game = _gameService.GetGame(roomId);
         var roundTimer = _roomService.GetRoomSettings(roomId).DrawingTime;
         DateTime now = DateTime.Now;
-        roundEnd = now.AddSeconds(roundTimer);
+        game.RoundEnd = now.AddSeconds(roundTimer);
+        game.TimerStarted = true; // flag is set here so there is never a null roundEnd
         _gameService.GetGame(roomId).CurrentPhase = GamePhase.DrawingPhase; // change to drawing phase
 
-        await Clients.Group(roomId).SendAsync("ReceiveTimer", roundEnd.ToString("o"), roundTimer);
+        await Clients.Group(roomId).SendAsync("ReceiveTimer", game.RoundEnd.ToString("o"), roundTimer);
     }
 
     public async Task TimerEnded()
     {
-        timerStarted = false;
         var user = await ResolveUserAsync();
         var roomId = user.RoomId!;
-
+        var game = _gameService.GetGame(roomId);
+        game.TimerStarted = false;
         _gameService.HandleTimerEnd(roomId, out string wordToDraw, out bool roundEnded, out bool gameEnded,
             out bool alreadyCalled);
         if (!alreadyCalled) await ManageTurnEnding(roomId, wordToDraw, roundEnded, gameEnded);
