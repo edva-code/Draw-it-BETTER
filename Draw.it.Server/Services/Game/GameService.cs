@@ -208,10 +208,4 @@ public class GameService : IGameService
         game.CanvasStrokes.Clear();
         _gameRepository.Save(game);
     }
-
-    public IReadOnlyList<StrokeDto> GetCanvasStrokes(string roomId)
-    {
-        var game = GetGame(roomId);
-        return game.CanvasStrokes.AsReadOnly();
-    }
 }

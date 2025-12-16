@@ -41,11 +41,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
 
-        var strokes = _gameService.GetCanvasStrokes(roomId);
-        if (strokes != null && strokes.Any())
-        {
-            await Clients.Caller.SendAsync("ReceiveCanvasState", strokes);
-        }
+        await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount)
         {
@@ -54,10 +50,12 @@ public class GameplayHub : BaseHub<GameplayHub>
             {
                 await StartTurn(roomId, true);
             }
-
-            var word = game.WordToDraw;
-            var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
-            await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
+            else
+            {
+                var word = game.WordToDraw;
+                var isDrawerOrGuessed = game.CurrentDrawerId == user.Id || game.GuessedPlayersIds.Contains(user.Id);
+                await Clients.Caller.SendAsync("ReceiveWordToDraw", isDrawerOrGuessed ? word : _gameService.GetMaskedWord(word));
+            }
         }
         else
         {
