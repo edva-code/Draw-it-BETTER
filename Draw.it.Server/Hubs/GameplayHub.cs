@@ -50,6 +50,7 @@ public class GameplayHub : BaseHub<GameplayHub>
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
 
+        await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount
@@ -80,6 +81,7 @@ public class GameplayHub : BaseHub<GameplayHub>
             {
                 await SendSystemMessageToRoom(roomId, $"{user.Name} joined the game");
             }
+
             var waitingMessage = $"Waiting for other players to connect... ({game.ConnectedPlayersIds.Count}/{game.PlayerCount})";
             await Clients.Caller.SendAsync("ReceiveMessage", "System", waitingMessage);
         }
@@ -119,6 +121,9 @@ public class GameplayHub : BaseHub<GameplayHub>
             throw new HubException("Only drawer is allowed to draw.");
         }
 
+        _gameService.AddCanvasEvent(roomId, drawDto);
+
+
         await Clients.GroupExcept(roomId, Context.ConnectionId).SendAsync("ReceiveDraw", drawDto);
     }
 
@@ -132,6 +137,8 @@ public class GameplayHub : BaseHub<GameplayHub>
         {
             throw new HubException("Only drawer is allowed to clear.");
         }
+
+        _gameService.ClearCanvasStrokes(roomId);
 
         await Clients.GroupExcept(roomId, Context.ConnectionId).SendAsync("ReceiveClear");
     }
@@ -192,6 +199,8 @@ public class GameplayHub : BaseHub<GameplayHub>
         var game = _gameService.GetGame(roomId);
         var maskedWord = _gameService.GetMaskedWord(game.WordToDraw);
         var drawerId = game.CurrentDrawerId.ToString();
+
+        _gameService.ClearCanvasStrokes(roomId);
 
         await Clients.Group(roomId).SendAsync("ReceiveClear");
         await Clients.Group(roomId).SendAsync("ReceiveTurnStarted");
