@@ -183,11 +183,13 @@ public class GameServiceTest
                 new UserModel { Id = Player2Id, Name = "Player2" }
             });
 
+        _game.RoundScores[DrawerId] = 1;
+
         // Act 
         _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
 
         // Assert 
-        Assert.That(_game.RoundScores[DrawerId], Is.EqualTo(1));
+        Assert.That(_game.RoundScores[DrawerId], Is.EqualTo(2));
         Assert.That(_game.RoundScores[Player2Id], Is.EqualTo(2));
 
         Assert.That(turnEnded, Is.True);
