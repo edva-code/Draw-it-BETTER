@@ -23,6 +23,10 @@ public class GameplayHub : BaseHub<GameplayHub>
     private const int RoundDelayMs = 6000;
     private const int EndGameDelayMs = 10000;
 
+    private DateTime roundEnd; // for reconnecting, to get the round end time
+    private Boolean timerStarted = false; // flag for reconnecting to see if the round has started or not
+    // and also when people connect we do not want to start the timer immediatel, plus there are delays above
+
     public GameplayHub(
         ILogger<GameplayHub> logger,
         IUserService userService,
@@ -52,6 +56,14 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         await Clients.Caller.SendAsync("ReceiveCanvasState", game.CanvasStrokes);
         await Clients.Caller.SendAsync("ReceiveGameRounds", room.Settings.NumberOfRounds);
+        
+        // If a person reconnects
+        if (timerStarted)
+        {
+            var roundDur = room.Settings.DrawingTime;
+            var correctedRoundDur = (roundEnd - DateTime.Now) / 1000;
+            await Clients.Group(roomId).SendAsync("ReceiveTimer", roundEnd.ToString("o"), correctedRoundDur);
+        }
 
         if (game.ConnectedPlayersIds.Count == game.PlayerCount
             || (room.Settings.HasAiPlayer && game.ConnectedPlayersIds.Count == game.PlayerCount - 1))
@@ -223,9 +235,10 @@ public class GameplayHub : BaseHub<GameplayHub>
 
     private async Task StartTimer(string roomId)
     {
+        timerStarted = true;
         var roundTimer = _roomService.GetRoomSettings(roomId).DrawingTime;
         DateTime now = DateTime.Now;
-        DateTime roundEnd = now.AddSeconds(roundTimer);
+        roundEnd = now.AddSeconds(roundTimer);
         _gameService.GetGame(roomId).CurrentPhase = GamePhase.DrawingPhase; // change to drawing phase
 
         await Clients.Group(roomId).SendAsync("ReceiveTimer", roundEnd.ToString("o"), roundTimer);
@@ -233,6 +246,7 @@ public class GameplayHub : BaseHub<GameplayHub>
 
     public async Task TimerEnded()
     {
+        timerStarted = false;
         var user = await ResolveUserAsync();
         var roomId = user.RoomId!;
 
