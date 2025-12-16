@@ -4,6 +4,7 @@ using Draw.it.Server.Models.Game;
 using Draw.it.Server.Repositories.Game;
 using Draw.it.Server.Services.Room;
 using Draw.it.Server.Enums;
+using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Services.WordPool;
 
 
@@ -137,6 +138,7 @@ public class GameService : IGameService
         game.CurrentDrawerId = nextDrawerId;
         game.WordToDraw = GetRandomWord(room.Settings.CategoryId);
         game.GuessedPlayersIds.Clear();
+        game.CanvasStrokes.Clear();
 
         _gameRepository.Save(game);
 
@@ -181,5 +183,34 @@ public class GameService : IGameService
         game.CurrentPhase = GamePhase.EndingPhase;
         wordToDraw = game.WordToDraw;
         AdvanceTurn(game, out roundEnded, out gameEnded);
+    }
+
+    public void AddCanvasEvent(string roomId, DrawDto drawDto)
+    {
+        var game = GetGame(roomId);
+        if (drawDto == null) return;
+
+        if (drawDto.Type == DrawType.Start)
+        {
+            var stroke = new StrokeDto(new List<Point> { drawDto.Point }, drawDto.Color, drawDto.Size, drawDto.Eraser);
+            game.CanvasStrokes.Add(stroke);
+        }
+        else if (drawDto.Type == DrawType.Move)
+        {
+            if (game.CanvasStrokes.Count > 0)
+            {
+                var last = game.CanvasStrokes.Last();
+                last.Points.Add(drawDto.Point);
+            }
+        }
+
+        _gameRepository.Save(game);
+    }
+
+    public void ClearCanvasStrokes(string roomId)
+    {
+        var game = GetGame(roomId);
+        game.CanvasStrokes.Clear();
+        _gameRepository.Save(game);
     }
 }

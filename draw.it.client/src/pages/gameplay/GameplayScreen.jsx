@@ -19,6 +19,7 @@ export default function GameplayScreen() {
     const [scoreModalScores, setScoreModalScores] = useState([]);
     const [playerStatuses, setPlayerStatuses] = useState([]);
     const [myName, setMyName] = useState("");
+    const [currentWord, setCurrentWord] = useState("");
     const [timer, setTimer] = useState(0);
     const [currentRound, setCurrentRound] = useState(1);
     const [totalRounds, setTotalRounds] = useState(null);
@@ -48,6 +49,10 @@ export default function GameplayScreen() {
         gameplayConnection.on("ReceiveMessage", (userName, message, isCorrectGuess) => {
             setMessages((prevMessages) => [...prevMessages, { user: userName, message: message, isCorrect: isCorrectGuess ?? false }]);
         })
+
+        gameplayConnection.on("ReceiveWordToDraw", (word) => {
+            setCurrentWord(word);
+        });
 
         gameplayConnection.on("ReceiveTurnStarted", () => {
             setScoreModalOpen(false);
@@ -82,6 +87,7 @@ export default function GameplayScreen() {
         return () => {
             gameplayConnection.off("ReceiveMessage");
             gameplayConnection.off("ReceiveTurnStarted");
+            gameplayConnection.off("ReceiveWordToDraw");
             gameplayConnection.off("ReceiveRoundStarted");
             gameplayConnection.off("ReceiveGameRounds");
             gameplayConnection.off("ReceiveRoundEnded");
@@ -89,7 +95,6 @@ export default function GameplayScreen() {
             gameplayConnection.off("ReceivePlayerStatuses");
         };
     }, [gameplayConnection, roomId]);
-    
     
     const handleSendMessage = async (message) => {
         try {
@@ -101,7 +106,7 @@ export default function GameplayScreen() {
     };
 
     const isDrawer = playerStatuses.some(
-        (player) => player.isDrawer && player.name === myName 
+        (player) => player.isDrawer && player.name === myName
     );
     
     return (
@@ -112,7 +117,7 @@ export default function GameplayScreen() {
             <div className="relative w-3/4 h-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col mr-4">
                 <RoundComponent currentRound={currentRound} totalRounds={totalRounds} />
                 <TimerComponent />
-                <DrawingCanvas isDrawer={isDrawer} />
+                <DrawingCanvas isDrawer={isDrawer} word={currentWord}/>
             </div>
 
             {/* FIX 2: Explicitly wrap ChatComponent to control its w-1/4 and h-full layout */}
