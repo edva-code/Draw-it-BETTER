@@ -87,6 +87,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -98,6 +99,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
+
+app.UseRouting();
 
 // Use authentication/authorization middlewares
 app.UseAuthentication();
