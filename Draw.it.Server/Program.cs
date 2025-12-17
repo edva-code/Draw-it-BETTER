@@ -108,8 +108,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<LobbyHub>("/lobbyHub");
-app.MapHub<GameplayHub>("/gameplayHub");
+app.MapHub<LobbyHub>("/hubs/lobby");
+app.MapHub<GameplayHub>("/hubs/gameplay");
 
 app.MapFallbackToFile("/index.html");
 

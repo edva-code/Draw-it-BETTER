@@ -34,7 +34,7 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
     }
 }
 
-const target = env.SERVER_BASE_URL ||
+const target = env.SERVER_BASE_URL ??
     env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
     env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] :
     'https://localhost:7200';
@@ -52,16 +52,21 @@ export default defineConfig({
         emptyOutDir: true
     },
     server: {
-        proxy: {
-            '^/drawitem': {
-                target,
-                secure: false
-            }
-        },
-        port: parseInt(env.DEV_SERVER_PORT || '61528'),
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
-        }
+        },
+        port: parseInt(env.DEV_SERVER_PORT || '61528'),
+        proxy: {
+            '/api': {
+                target,
+                secure: false
+            },
+            '/hubs': {
+                target,
+                secure: false,
+                ws: true
+            }
+        },
     }
 })
