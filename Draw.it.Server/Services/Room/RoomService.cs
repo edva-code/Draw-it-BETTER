@@ -209,9 +209,9 @@ public class RoomService : IRoomService
         }
 
         var players = GetUsersInRoom(roomId).ToList();
-        if (players.Count < 2)
+        if (players.Count < 2 && !(players.Count == 1 && room.Settings.HasAiPlayer))
         {
-            throw new AppException("Cannot start game: At least 2 players are required.", HttpStatusCode.Conflict);
+            throw new AppException("Cannot start game: At least 2 players or AI is required.", HttpStatusCode.Conflict);
         }
 
         var notReadyPlayers = players.Where(p => !p.IsReady).ToList();
