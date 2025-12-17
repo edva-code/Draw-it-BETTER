@@ -404,11 +404,11 @@ public class RoomServiceTest
     }
 
     [TestCase(0, false, true)]
-    [TestCase(0, true,  true)]
+    [TestCase(0, true, true)]
     [TestCase(1, false, true)]
-    [TestCase(1, true,  false)]
+    [TestCase(1, true, false)]
     [TestCase(2, false, false)]
-    [TestCase(2, true,  false)]
+    [TestCase(2, true, false)]
     public void StartGame_playerCountAndAiCombination_coversAllBranches(
         int playerCount, bool hasAi, bool shouldThrow)
     {
