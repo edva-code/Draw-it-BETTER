@@ -4,6 +4,7 @@ using Draw.it.Server.Models.Game;
 using Draw.it.Server.Repositories.Game;
 using Draw.it.Server.Services.Room;
 using Draw.it.Server.Enums;
+using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Services.WordPool;
 
 
@@ -93,6 +94,10 @@ public class GameService : IGameService
 
         game.GuessedPlayersIds.Add(userId);
 
+        var drawerId = game.CurrentDrawerId;
+        if (!game.RoundScores.TryAdd(drawerId, 1))
+            game.RoundScores[drawerId] += 1;
+
         _gameRepository.Save(game);
 
         if (game.GuessedPlayersIds.Count >= game.PlayerCount - 1)
@@ -117,7 +122,11 @@ public class GameService : IGameService
 
     private long GetPlayerIdByTurnIndex(string roomId, int turnIndex)
     {
-        return _roomService.GetUsersInRoom(roomId).Select(p => p.Id).ElementAt(turnIndex);
+        return _roomService
+            .GetUsersInRoom(roomId)
+            .Where(p => !p.IsAi)
+            .Select(p => p.Id)
+            .ElementAt(turnIndex);
     }
 
     private void AdvanceTurn(GameModel game, out bool roundEnded, out bool gameEnded)
@@ -125,13 +134,15 @@ public class GameService : IGameService
         var room = _roomService.GetRoom(game.RoomId);
         roundEnded = gameEnded = false;
 
-        var nextTurnIndex = (game.CurrentTurnIndex + 1) % game.PlayerCount;
+        var playerCount = room.Settings.HasAiPlayer ? game.PlayerCount - 1 : game.PlayerCount;
+        var nextTurnIndex = (game.CurrentTurnIndex + 1) % playerCount;
         var nextDrawerId = GetPlayerIdByTurnIndex(game.RoomId, nextTurnIndex);
 
         game.CurrentTurnIndex = nextTurnIndex;
         game.CurrentDrawerId = nextDrawerId;
         game.WordToDraw = GetRandomWord(room.Settings.CategoryId);
         game.GuessedPlayersIds.Clear();
+        game.CanvasStrokes.Clear();
 
         _gameRepository.Save(game);
 
@@ -144,7 +155,6 @@ public class GameService : IGameService
 
     private void AdvanceRound(GameModel game, out bool gameEnded)
     {
-
         foreach (var kvp in game.RoundScores)
         {
             if (!game.TotalScores.TryAdd(kvp.Key, kvp.Value))
@@ -157,5 +167,54 @@ public class GameService : IGameService
 
         var totalRounds = _roomService.GetRoom(game.RoomId).Settings.NumberOfRounds;
         gameEnded = game.CurrentRound > totalRounds;
+    }
+
+    public void HandleTimerEnd(string roomId, out string wordToDraw, out bool roundEnded, out bool gameEnded, out bool alreadyCalled)
+    {
+        var game = GetGame(roomId);
+        alreadyCalled = false;
+        gameEnded = roundEnded = false;
+
+        if (!game.CurrentPhase.Equals(GamePhase.DrawingPhase))
+        {
+            // Ignore the call if the round has already been marked as ending or ended.
+            alreadyCalled = true;
+            wordToDraw = "";
+            return;
+        }
+
+        // Only the first caller passes, so no duplicate calls
+        game.CurrentPhase = GamePhase.EndingPhase;
+        wordToDraw = game.WordToDraw;
+        AdvanceTurn(game, out roundEnded, out gameEnded);
+    }
+
+    public void AddCanvasEvent(string roomId, DrawDto drawDto)
+    {
+        var game = GetGame(roomId);
+        if (drawDto == null) return;
+
+        if (drawDto.Type == DrawType.Start)
+        {
+            var stroke = new StrokeDto(new List<Point> { drawDto.Point }, drawDto.Color, drawDto.Size, drawDto.Eraser);
+            game.CanvasStrokes.Add(stroke);
+        }
+        else if (drawDto.Type == DrawType.Move)
+        {
+            if (game.CanvasStrokes.Count > 0)
+            {
+                var last = game.CanvasStrokes.Last();
+                last.Points.Add(drawDto.Point);
+            }
+        }
+
+        _gameRepository.Save(game);
+    }
+
+    public void ClearCanvasStrokes(string roomId)
+    {
+        var game = GetGame(roomId);
+        game.CanvasStrokes.Clear();
+        _gameRepository.Save(game);
     }
 }

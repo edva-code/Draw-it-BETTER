@@ -4,10 +4,13 @@ import DrawingCanvas from "@/components/gameplay/DrawingCanvas";
 import ChatComponent from "@/components/gameplay/ChatComponent.jsx";
 import { GameplayHubContext } from "@/utils/GameplayHubProvider.jsx";
 import ScoreModal from "@/components/modal/ScoreModal.jsx";
+import TimerComponent from "@/components/gameplay/TimerComponent.jsx";
 import PlayerStatusList from "@/components/gameplay/PlayerStatusList";
+import RoundComponent from "@/components/gameplay/RoundComponent";
+import api from "@/utils/api.js";
 
 export default function GameplayScreen() {
-    
+
     const gameplayConnection = useContext(GameplayHubContext);
     const { roomId } = useParams();
     const [messages, setMessages] = useState([]);
@@ -15,6 +18,30 @@ export default function GameplayScreen() {
     const [scoreModalTitle, setScoreModalTitle] = useState("");
     const [scoreModalScores, setScoreModalScores] = useState([]);
     const [playerStatuses, setPlayerStatuses] = useState([]);
+    const [myName, setMyName] = useState("");
+    const [currentWord, setCurrentWord] = useState("");
+    const [timer, setTimer] = useState(0);
+    const [currentRound, setCurrentRound] = useState(1);
+    const [totalRounds, setTotalRounds] = useState(null);
+
+    useEffect(() => {
+        const fetchMyName = async () => {
+            try {
+                const response = await api.get('/auth/me');
+
+                if (response.status === 200) {
+                    const username = response.data.name;
+                    setMyName(username);
+                } else {
+                    console.error("Failed to fetch user data. Status:", response.status);
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        };
+
+        fetchMyName();
+    }, []);
     
     useEffect(() => {
         if(!gameplayConnection) return;
@@ -23,12 +50,21 @@ export default function GameplayScreen() {
             setMessages((prevMessages) => [...prevMessages, { user: userName, message: message, isCorrect: isCorrectGuess ?? false }]);
         })
 
+        gameplayConnection.on("ReceiveWordToDraw", (word) => {
+            setCurrentWord(word);
+        });
+
         gameplayConnection.on("ReceiveTurnStarted", () => {
             setScoreModalOpen(false);
             setMessages([]);
         });
 
-        gameplayConnection.on("ReceiveRoundStarted", () => {
+        gameplayConnection.on("ReceiveGameRounds", (rounds) => {
+            setTotalRounds(rounds);
+        });
+
+        gameplayConnection.on("ReceiveRoundStarted", (currentRoundNumber) => {
+            setCurrentRound(currentRoundNumber);
         });
 
         gameplayConnection.on("ReceivePlayerStatuses", (statuses) => {
@@ -47,16 +83,18 @@ export default function GameplayScreen() {
             setScoreModalOpen(true);
         });
 
+        
         return () => {
             gameplayConnection.off("ReceiveMessage");
             gameplayConnection.off("ReceiveTurnStarted");
+            gameplayConnection.off("ReceiveWordToDraw");
             gameplayConnection.off("ReceiveRoundStarted");
+            gameplayConnection.off("ReceiveGameRounds");
             gameplayConnection.off("ReceiveRoundEnded");
             gameplayConnection.off("ReceiveGameEnded");
             gameplayConnection.off("ReceivePlayerStatuses");
         };
     }, [gameplayConnection, roomId]);
-    
     
     const handleSendMessage = async (message) => {
         try {
@@ -66,14 +104,20 @@ export default function GameplayScreen() {
             alert("Error sending message. Please try again.");
         }        
     };
+
+    const isDrawer = playerStatuses.some(
+        (player) => player.isDrawer && player.name === myName
+    );
     
     return (
         // FIX 1: Use w-screen h-screen and overflow-hidden to contain the layout.
         <div className="flex w-screen h-[90vh] bg-secondary p-4 overflow-hidden">
 
             {/* Canvas Wrapper: w-3/4 and h-full remains correct */}
-            <div className="w-3/4 h-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col mr-4">
-                <DrawingCanvas />
+            <div className="relative w-3/4 h-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col mr-4">
+                <RoundComponent currentRound={currentRound} totalRounds={totalRounds} />
+                <TimerComponent />
+                <DrawingCanvas isDrawer={isDrawer} word={currentWord}/>
             </div>
 
             {/* FIX 2: Explicitly wrap ChatComponent to control its w-1/4 and h-full layout */}

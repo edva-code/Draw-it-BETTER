@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
+using Draw.it.Server.Enums;
 using Draw.it.Server.Hubs;
 using Draw.it.Server.Hubs.DTO;
+using Draw.it.Server.Integrations.Gemini;
 using Draw.it.Server.Models.Game;
 using Draw.it.Server.Models.Room;
 using Draw.it.Server.Models.User;
@@ -23,6 +25,7 @@ public class GameplayHubTest
     private Mock<IUserService> _userService;
     private Mock<IGameService> _gameService;
     private Mock<IRoomService> _roomService;
+    private Mock<IGeminiClient> _geminiClient;
     private Mock<HubCallerContext> _context;
     private Mock<IHubCallerClients> _clients;
     private Mock<ISingleClientProxy> _callerClient;
@@ -41,6 +44,7 @@ public class GameplayHubTest
         _userService = new Mock<IUserService>();
         _gameService = new Mock<IGameService>();
         _roomService = new Mock<IRoomService>();
+        _geminiClient = new Mock<IGeminiClient>();
         _context = new Mock<HubCallerContext>();
         _clients = new Mock<IHubCallerClients>();
         _callerClient = new Mock<ISingleClientProxy>();
@@ -69,6 +73,9 @@ public class GameplayHubTest
             .Setup(s => s.GetUser(UserId))
             .Returns(_user);
 
+        CreateRoom(hostId: 2, numberOfRounds: 3);
+        SetupUsersInRoom(_user);
+
         _clients.Setup(c => c.Caller).Returns(_callerClient.Object);
         _clients.Setup(c => c.Group(It.IsAny<string>())).Returns(_groupClient.Object);
         _clients.Setup(c => c.User(It.IsAny<string>())).Returns(_userClient.Object);
@@ -77,33 +84,10 @@ public class GameplayHubTest
                 It.IsAny<IReadOnlyList<string>>()))
             .Returns(_groupExceptClient.Object);
 
-        _callerClient
-            .Setup<Task>(c => c.SendCoreAsync(
-                It.IsAny<string>(),
-                It.IsAny<object?[]>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        _groupClient
-            .Setup<Task>(c => c.SendCoreAsync(
-                It.IsAny<string>(),
-                It.IsAny<object?[]>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        _userClient
-            .Setup<Task>(c => c.SendCoreAsync(
-                It.IsAny<string>(),
-                It.IsAny<object?[]>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        _groupExceptClient
-            .Setup<Task>(c => c.SendCoreAsync(
-                It.IsAny<string>(),
-                It.IsAny<object?[]>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        SetupClientProxy(_callerClient);
+        SetupClientProxy(_groupClient);
+        SetupClientProxy(_userClient);
+        SetupClientProxy(_groupExceptClient);
 
         _groups
             .Setup(g => g.AddToGroupAsync(
@@ -116,27 +100,12 @@ public class GameplayHubTest
             _logger.Object,
             _userService.Object,
             _gameService.Object,
-            _roomService.Object);
+            _roomService.Object,
+            _geminiClient.Object);
 
         _hub.SetContext(_context.Object);
         _hub.SetClients(_clients.Object);
         _hub.SetGroups(_groups.Object);
-    }
-
-    private class TestableGameplayHub : GameplayHub
-    {
-        public TestableGameplayHub(
-            ILogger<GameplayHub> logger,
-            IUserService userService,
-            IGameService gameService,
-            IRoomService roomService)
-            : base(logger, userService, gameService, roomService)
-        {
-        }
-
-        public void SetContext(HubCallerContext context) => Context = context;
-        public void SetClients(IHubCallerClients clients) => Clients = clients;
-        public void SetGroups(IGroupManager groups) => Groups = groups;
     }
 
     [TearDown]
@@ -148,7 +117,18 @@ public class GameplayHubTest
     [Test]
     public async Task whenOnConnected_andWaitingForPlayers_andNewPlayer_thenWaitingMessageSentToCaller()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2 }, 2, "APPLE");
+        var game = CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        var otherUser = new UserModel { Id = 2, Name = "OTHER_USER", RoomId = RoomId };
+        SetupUsersInRoom(_user, otherUser);
+
+        CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -178,6 +158,13 @@ public class GameplayHubTest
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
         _callerClient.Verify(
             c => c.SendCoreAsync(
                 "ReceiveWordToDraw",
@@ -196,7 +183,17 @@ public class GameplayHubTest
     [Test]
     public async Task whenOnConnected_andWaitingForPlayers_andReconnected_thenWaitingMessageSentToCaller()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2 }, 2, "APPLE");
+        var game = CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        var otherUser = new UserModel { Id = 2, Name = "OTHER_USER", RoomId = RoomId };
+        SetupUsersInRoom(_user, otherUser);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
@@ -206,24 +203,35 @@ public class GameplayHubTest
 
         VerifyAddedToGroupOnce();
 
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveMessage",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == "System" &&
+                    ((string)args[1]!).Contains($"{_user.Name} joined the game")),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
         _callerClient.Verify(
             c => c.SendCoreAsync(
                 "ReceiveMessage",
                 It.Is<object?[]>(args =>
                     args.Length == 2 &&
                     (string)args[0]! == "System" &&
-                    ((string)args[1]!).Contains($"Waiting for other players to connect... ({game.ConnectedPlayersIds.Count}/{game.PlayerCount})")),
+                    ((string)args[1]!).Contains(
+                        $"Waiting for other players to connect... ({game.ConnectedPlayersIds.Count}/{game.PlayerCount})")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
         _callerClient.Verify(
-            c => c.SendCoreAsync(
-                "ReceiveWordToDraw",
-                It.IsAny<object?[]>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        _groupClient.Verify(
             c => c.SendCoreAsync(
                 "ReceiveWordToDraw",
                 It.IsAny<object?[]>(),
@@ -234,7 +242,18 @@ public class GameplayHubTest
     [Test]
     public async Task whenOnConnected_andGameStarted_andNewPlayer_thenStartTurn()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, 2, "APPLE");
+        var game = CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2, 3 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        var drawerUser = new UserModel { Id = 2, Name = "DRAWER_USER", RoomId = RoomId };
+        var otherUser = new UserModel { Id = 3, Name = "OTHER_USER", RoomId = RoomId };
+
+        SetupUsersInRoom(_user, drawerUser, otherUser);
+
+        CreateRoom(hostId: 2, numberOfRounds: 3);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -252,8 +271,7 @@ public class GameplayHubTest
                 Name = "DRAWER_USER",
                 RoomId = RoomId
             });
-
-        var room = CreateRoom(2, 3);
+        var room = CreateRoom(2, 3, 60);
 
         await _hub.OnConnectedAsync();
 
@@ -265,9 +283,30 @@ public class GameplayHubTest
                 It.Is<object?[]>(args =>
                     args.Length == 2 &&
                     (string)args[0]! == "System" &&
-                    ((string)args[1]!).Contains($"ROUND {game.CurrentRound}/{room.Settings.NumberOfRounds} STARTED!")),
+                    ((string)args[1]!).Contains($"ROUND {game.CurrentRound}/3 STARTED!")),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveClear",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce); // from StartTurn
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveTurnStarted",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
 
         _groupExceptClient.Verify(
             c => c.SendCoreAsync(
@@ -286,16 +325,35 @@ public class GameplayHubTest
                     (string)args[0]! == "APPLE"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _userClient.Verify(
+            c => c.SendCoreAsync(
+                "AiGuessedCorrectly",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Test]
     public async Task whenOnConnected_andGameStarted_andReconnected_andUserIsDrawer_thenSendWordToCaller()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, UserId, "APPLE");
-        
+        CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2, 3 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
+        var other1 = new UserModel { Id = 2, Name = "P2", RoomId = RoomId };
+        var other2 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
+        SetupUsersInRoom(_user, other1, other2);
+
+        CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
+
         _gameService
             .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
-            .Returns(false);
+            .Returns(false); // reconnected
 
         await _hub.OnConnectedAsync();
 
@@ -312,6 +370,13 @@ public class GameplayHubTest
 
         _groupClient.Verify(
             c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
                 "ReceiveWordToDraw",
                 It.IsAny<object?[]>(),
                 It.IsAny<CancellationToken>()),
@@ -321,7 +386,19 @@ public class GameplayHubTest
     [Test]
     public async Task whenOnConnected_andGameStarted_andReconnected_andUserIsNotDrawer_thenSendMaskedWordToCaller()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, 2, "APPLE");
+        CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2, 3 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        var drawerUser = new UserModel { Id = 2, Name = "DRAWER", RoomId = RoomId };
+        var otherUser = new UserModel { Id = 3, Name = "OTHER", RoomId = RoomId };
+
+        SetupUsersInRoom(_user, drawerUser, otherUser);
+        CreateRoom(hostId: 2, numberOfRounds: 3);
+
+        var room = CreateRoom(2, 3, 60);
 
         _gameService
             .Setup(s => s.GetMaskedWord("APPLE"))
@@ -344,16 +421,28 @@ public class GameplayHubTest
 
         _groupClient.Verify(
             c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
                 "ReceiveWordToDraw",
                 It.IsAny<object?[]>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
+
     [Test]
     public async Task whenSendMessage_andSenderIsDrawer_thenNormalMessageBroadcast()
     {
-        var game = CreateGame(2, new HashSet<long>(), UserId, "APPLE");
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
 
         const string message = "hello everyone";
 
@@ -370,14 +459,23 @@ public class GameplayHubTest
             Times.Once);
 
         _gameService.Verify(
-            s => s.AddGuessedPlayer(It.IsAny<string>(), It.IsAny<long>(), out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny),
+            s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
             Times.Never);
     }
 
     [Test]
     public async Task whenSendMessage_andSenderIsNotDrawer_andWrongGuess_thenNormalMessageBroadcast()
     {
-        var game = CreateGame(2, new HashSet<long>(), 2, "APPLE");
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
 
         const string message = "banana";
 
@@ -394,18 +492,29 @@ public class GameplayHubTest
             Times.Once);
 
         _gameService.Verify(
-            s => s.AddGuessedPlayer(It.IsAny<string>(), It.IsAny<long>(), out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny),
+            s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
             Times.Never);
     }
 
     [Test]
     public async Task whenSendMessage_andSenderIsNotDrawer_andCorrectGuess_thenMessageBroadcastCorrect()
     {
-        var game = CreateGame(3, new HashSet<long> { UserId, 2, 3 }, 2, "APPLE");
+        CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2, 3 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
 
-        SetupAddGuessedPlayerCallback(false, false, false);
+        var p2 = new UserModel { Id = 2, Name = "P2", RoomId = RoomId };
+        var p3 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
+        SetupUsersInRoom(_user, p2, p3);
 
-        var room = CreateRoom(2, 3);
+        SetupAddGuessedPlayerCallback(turnEnded: false, roundEnded: false, gameEnded: false);
 
         await _hub.SendMessage("APPLE");
 
@@ -428,11 +537,34 @@ public class GameplayHubTest
                     (string)args[0]! == "APPLE"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _gameService.Verify(
+            s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
+            Times.Once);
+
+        // Player statuses updated
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Test]
-    public async Task whenSendDraw_thenBroadcastToGroupExceptCaller()
+    public async Task whenSendDraw_andUserIsDrawer_thenBroadcastToGroupExceptCaller()
     {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
         await _hub.SendDraw(null!);
 
         _groupExceptClient.Verify(
@@ -444,8 +576,33 @@ public class GameplayHubTest
     }
 
     [Test]
-    public async Task whenSendClear_thenBroadcastClearToGroupExceptCaller()
+    public void whenSendDraw_andUserIsNotDrawer_thenThrowsHubException()
     {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        Assert.ThrowsAsync<HubException>(async () => await _hub.SendDraw(null!));
+
+        _groupExceptClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveDraw",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenSendClear_andUserIsDrawer_thenBroadcastClearToGroupExceptCaller()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
         await _hub.SendClear();
 
         _groupExceptClient.Verify(
@@ -455,7 +612,281 @@ public class GameplayHubTest
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
-    
+
+    [Test]
+    public void whenSendClear_andUserIsNotDrawer_thenThrowsHubException()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        Assert.ThrowsAsync<HubException>(async () => await _hub.SendClear());
+
+        _groupExceptClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveClear",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenSendCanvasSnapshot_andGeminiReturnsEmptyGuess_thenNoMessageSent()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
+        var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
+
+        _geminiClient
+            .Setup(c => c.GuessImage(dto.ImageBytes, dto.MimeType))
+            .ReturnsAsync(string.Empty);
+
+        await _hub.SendCanvasSnapshot(dto);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                It.IsAny<string>(),
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenSendCanvasSnapshot_andUserNotDrawer_thenDontCallGemini()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: 2,
+            wordToDraw: "APPLE");
+
+        var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
+
+        Assert.ThrowsAsync<HubException>(async () => await _hub.SendCanvasSnapshot(dto));
+
+        _geminiClient.Verify(
+            c => c.GuessImage(
+                It.IsAny<String>(), It.IsAny<String>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenSendCanvasSnapshot_andGuessIncorrect_thenAiBroadcastsChatMessage()
+    {
+        CreateGame(
+            playerCount: 2,
+            connectedPlayersIds: new HashSet<long> { UserId, 2 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
+        var aiUser = new UserModel { Id = 99, Name = "AI_BOT", RoomId = RoomId };
+        _userService.Setup(s => s.GetAiUserInRoom(RoomId)).Returns(aiUser);
+
+        var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
+        const string guess = "banana";
+
+        _geminiClient
+            .Setup(c => c.GuessImage(dto.ImageBytes, dto.MimeType))
+            .ReturnsAsync(guess);
+
+        await _hub.SendCanvasSnapshot(dto);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveMessage",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == aiUser.Name &&
+                    (string)args[1]! == guess),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _gameService.Verify(
+            s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
+            Times.Never);
+
+        _userClient.Verify(
+            c => c.SendCoreAsync(
+                "AiGuessedCorrectly",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenSendCanvasSnapshot_andGuessCorrect_thenAiGuessesWordAndUpdatesStatuses()
+    {
+        CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, 2, 99 },
+            currentDrawerId: UserId,
+            wordToDraw: "APPLE");
+
+        var drawerUser = new UserModel { Id = 2, Name = "DRAWER", RoomId = RoomId };
+        var aiUser = new UserModel { Id = 99, Name = "AI_BOT", RoomId = RoomId };
+
+        SetupUsersInRoom(_user, drawerUser, aiUser);
+
+        _userService.Setup(s => s.GetAiUserInRoom(RoomId)).Returns(aiUser);
+
+        SetupAddGuessedPlayerCallback(turnEnded: false, roundEnded: false, gameEnded: false);
+
+        var dto = new CanvasSnapshotDto("IMAGE_BYTES", "image/png");
+        const string guess = "APPLE";
+
+        _geminiClient
+            .Setup(c => c.GuessImage(dto.ImageBytes, dto.MimeType))
+            .ReturnsAsync(guess);
+
+        await _hub.SendCanvasSnapshot(dto);
+
+        _userClient.Verify(
+            c => c.SendCoreAsync(
+                "AiGuessedCorrectly",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveMessage",
+                It.Is<object?[]>(args =>
+                    args.Length == 3 &&
+                    (string)args[0]! == aiUser.Name &&
+                    (string)args[1]! == "Guessed The Word!" &&
+                    (bool)args[2]!),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _gameService.Verify(
+            s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceivePlayerStatuses",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task whenTimerEnded_andAlreadyCalled_thenNoAdditionalActions()
+    {
+        // Arrange
+        var game = CreateGame(3, new HashSet<long> { 1, 2, 3 }, 2, "APPLE");
+        game.CurrentPhase = GamePhase.DrawingPhase;
+
+        bool alreadyCalled = true;
+        string wordToDraw = "";
+        bool turnEnded = false, roundEnded = false;
+
+        _gameService
+            .Setup(s => s.HandleTimerEnd(RoomId, out It.Ref<string>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny))
+            .Callback((string roomId, out string w, out bool te, out bool re, out bool ac) =>
+            {
+                w = wordToDraw;
+                te = turnEnded;
+                re = roundEnded;
+                ac = alreadyCalled;
+            });
+
+        // Act
+        await _hub.TimerEnded();
+
+        // Assert
+        _gameService.Verify(
+            s => s.HandleTimerEnd(RoomId, out It.Ref<string>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny),
+            Times.Once);
+
+        // Verify that ManageTurnEnding was NOT called (no TURN ENDED message)
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveMessage",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == "System" &&
+                    ((string)args[1]!).Contains("TURN ENDED!")),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task whenTimerEnded_andDrawingPhase_thenManageTurnEndingCalled()
+    {
+        // Arrange
+        var game = CreateGame(3, new HashSet<long> { 1, 2, 3 }, 2, "APPLE");
+        game.CurrentPhase = GamePhase.DrawingPhase;
+
+        string wordToDraw = "APPLE";
+        bool roundEnded = false, gameEnded = false, alreadyCalled = false;
+
+        _gameService
+            .Setup(s => s.HandleTimerEnd(RoomId,
+                out It.Ref<string>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny))
+            .Callback((string roomId, out string w, out bool re, out bool ge, out bool ac) =>
+            {
+                w = wordToDraw;
+                re = roundEnded;
+                ge = gameEnded;
+                ac = alreadyCalled;
+            });
+
+        // Mock the user service to return a drawer user
+        var drawerUser = new UserModel { Id = 2, Name = "DRAWER_USER", RoomId = RoomId };
+        _userService.Setup(s => s.GetUser(2)).Returns(drawerUser);
+
+        // Mock GetMaskedWord for StartTurn
+        _gameService.Setup(s => s.GetMaskedWord(It.IsAny<string>())).Returns("_____");
+
+        // Mock room settings for StartTimer
+        var roomSettings = new RoomSettingsModel { DrawingTime = 60 };
+        _roomService.Setup(s => s.GetRoomSettings(RoomId)).Returns(roomSettings);
+
+        // Act
+        await _hub.TimerEnded();
+
+        // Assert
+        _gameService.Verify(
+            s => s.HandleTimerEnd(RoomId,
+                out It.Ref<string>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny),
+            Times.Once);
+
+        _groupClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveMessage",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == "System" &&
+                    ((string)args[1]!).Contains($"TURN ENDED! The word was: {wordToDraw}")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+
+
     [Test]
     public void GetPlayerStatuses_ReturnsCorrectStatusesOrderedByScore()
     {
@@ -465,8 +896,7 @@ public class GameplayHubTest
             playerCount: 3,
             connectedPlayersIds: new HashSet<long> { 1, 2, 3 },
             currentDrawerId: drawerId,
-            wordToDraw: "APPLE"
-        );
+            wordToDraw: "APPLE");
 
         game.TotalScores = new Dictionary<long, int> { [1] = 5, [2] = 10, [3] = 7 };
         game.RoundScores = new Dictionary<long, int> { [1] = 2, [2] = 1, [3] = 3 };
@@ -474,9 +904,9 @@ public class GameplayHubTest
 
         var users = new List<UserModel>
         {
-            new UserModel { Id = 1, Name = "Alice" },
-            new UserModel { Id = 2, Name = "Bob" },
-            new UserModel { Id = 3, Name = "Charlie" }
+            new() { Id = 1, Name = "Alice" },
+            new() { Id = 2, Name = "Bob" },
+            new() { Id = 3, Name = "Charlie" }
         };
         _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
 
@@ -485,8 +915,9 @@ public class GameplayHubTest
         var result = (List<PlayerStatusDto>)method.Invoke(_hub, new object[] { RoomId })!;
 
         Assert.That(result.Count, Is.EqualTo(3));
+
         Assert.That(result[0].Name, Is.EqualTo("Bob"));
-        Assert.That(result[0].Score, Is.EqualTo(11)); 
+        Assert.That(result[0].Score, Is.EqualTo(11));
         Assert.That(result[0].IsDrawer, Is.True);
         Assert.That(result[0].HasGuessed, Is.False);
 
@@ -496,18 +927,95 @@ public class GameplayHubTest
         Assert.That(result[1].HasGuessed, Is.True);
 
         Assert.That(result[2].Name, Is.EqualTo("Alice"));
-        Assert.That(result[2].Score, Is.EqualTo(7)); 
+        Assert.That(result[2].Score, Is.EqualTo(7));
         Assert.That(result[2].IsDrawer, Is.False);
         Assert.That(result[2].HasGuessed, Is.True);
     }
-    
-    // Helper builders and setup methods to reduce duplication across tests
+
+    [Test]
+    public async Task whenOnConnected_andGameTimerStarted_andReconnected_thenReceiveTimerState()
+    {
+        // ARRANGE
+        // 1. Set up the game state as if the timer started 10 seconds ago (60 - 10 = 50s remaining)
+        const int totalDuration = 60;
+        var drawerId = 2;
+        var timeElapsedSeconds = 10;
+
+        // Define the fixed RoundEnd time based on current time plus the full duration
+        // We calculate this point in the future relative to a known start point.
+        // For the test, we'll use a RoundEnd that is 50 seconds in the future
+        var expectedRoundEnd = DateTime.Now.AddSeconds(totalDuration - timeElapsedSeconds);
+
+        var game = CreateGame(
+            playerCount: 3,
+            connectedPlayersIds: new HashSet<long> { UserId, drawerId, 3 },
+            currentDrawerId: drawerId,
+            wordToDraw: "APPLE",
+            timerStarted: true, // Key: Timer is running
+            roundEnd: expectedRoundEnd // Key: Set the deadline
+        );
+
+        var other1 = new UserModel { Id = drawerId, Name = "P2", RoomId = RoomId };
+        var other2 = new UserModel { Id = 3, Name = "P3", RoomId = RoomId };
+        SetupUsersInRoom(_user, other1, other2);
+        CreateRoom(hostId: drawerId, numberOfRounds: 3);
+
+        // Ensure the connection is treated as a reconnection, not a start
+        _gameService
+            .Setup(s => s.AddConnectedPlayer(RoomId, UserId))
+            .Returns(false);
+
+        // ACT
+        await _hub.OnConnectedAsync();
+
+        // ASSERT
+        // Verify the timer message was sent to the reconnecting client (Caller)
+        _callerClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveTimer",
+                It.Is<object?[]>(args =>
+                    args.Length == 2 &&
+                    (string)args[0]! == expectedRoundEnd.ToString("o") && // Deadline is correct
+                    (double)args[1]! > 49.0 && (double)args[1]! < 51.0), // Time remaining is approx. 50s
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify the game flow for a reconnecting player continued correctly
+        _callerClient.Verify(
+            c => c.SendCoreAsync(
+                "ReceiveWordToDraw",
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once); // Should receive the masked word
+    }
+
+
+    private class TestableGameplayHub : GameplayHub
+    {
+        public TestableGameplayHub(
+            ILogger<GameplayHub> logger,
+            IUserService userService,
+            IGameService gameService,
+            IRoomService roomService,
+            IGeminiClient geminiClient)
+            : base(logger, userService, gameService, roomService, geminiClient)
+        {
+        }
+
+        public void SetContext(HubCallerContext context) => Context = context;
+        public void SetClients(IHubCallerClients clients) => Clients = clients;
+        public void SetGroups(IGroupManager groups) => Groups = groups;
+    }
+
+
     private GameModel CreateGame(
         int playerCount,
         HashSet<long> connectedPlayersIds,
         long currentDrawerId,
         string wordToDraw,
-        int currentRound = 1)
+        int currentRound = 1,
+        bool timerStarted = false,
+        DateTime? roundEnd = null)
     {
         var game = new GameModel
         {
@@ -516,7 +1024,13 @@ public class GameplayHubTest
             ConnectedPlayersIds = connectedPlayersIds,
             CurrentDrawerId = currentDrawerId,
             WordToDraw = wordToDraw,
-            CurrentRound = currentRound
+            CurrentRound = currentRound,
+            TotalScores = new Dictionary<long, int>(),
+            RoundScores = new Dictionary<long, int>(),
+            GuessedPlayersIds = new List<long>(),
+            TimerStarted = timerStarted,
+            RoundEnd = roundEnd ?? DateTime.MinValue,
+            CurrentPhase = GamePhase.DrawingPhase
         };
 
         _gameService
@@ -526,7 +1040,7 @@ public class GameplayHubTest
         return game;
     }
 
-    private RoomModel CreateRoom(int hostId, int numberOfRounds)
+    private RoomModel CreateRoom(long hostId, int numberOfRounds, int drawingTime = 60, bool hasAiPlayer = false)
     {
         var room = new RoomModel
         {
@@ -534,7 +1048,9 @@ public class GameplayHubTest
             HostId = hostId,
             Settings = new RoomSettingsModel
             {
-                NumberOfRounds = numberOfRounds
+                NumberOfRounds = numberOfRounds,
+                HasAiPlayer = hasAiPlayer,
+                DrawingTime = drawingTime
             }
         };
 
@@ -542,13 +1058,29 @@ public class GameplayHubTest
             .Setup(s => s.GetRoom(RoomId))
             .Returns(room);
 
+        _roomService
+            .Setup(s => s.GetRoomSettings(RoomId))
+            .Returns(room.Settings);
+
         return room;
+    }
+
+    private void SetupUsersInRoom(params UserModel[] users)
+    {
+        _roomService
+            .Setup(s => s.GetUsersInRoom(RoomId))
+            .Returns(users.ToList());
     }
 
     private void SetupAddGuessedPlayerCallback(bool turnEnded, bool roundEnded, bool gameEnded)
     {
         _gameService
-            .Setup(s => s.AddGuessedPlayer(RoomId, UserId, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny, out It.Ref<bool>.IsAny))
+            .Setup(s => s.AddGuessedPlayer(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny,
+                out It.Ref<bool>.IsAny))
             .Callback((string roomId, long userId, out bool turn, out bool round, out bool game) =>
             {
                 turn = turnEnded;
@@ -565,5 +1097,16 @@ public class GameplayHubTest
                 RoomId,
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    private static void SetupClientProxy<TClient>(Mock<TClient> client)
+        where TClient : class, IClientProxy
+    {
+        client
+            .Setup(c => c.SendCoreAsync(
+                It.IsAny<string>(),
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 }

@@ -5,7 +5,7 @@ import "../../index.css";
 import {GameplayHubContext} from "@/utils/GameplayHubProvider.jsx";
 import WordComponent from "@/components/gameplay/WordComponent.jsx";
 
-const App = () => {
+const App = ({ isDrawer, word }) => {
     const canvasRef = useRef(null);
     const strokesRef = useRef([]); // [{ points:[{x,y}], color, size, eraser, canvasW, canvasH }]
     const localPathRef = useRef(null);
@@ -16,7 +16,8 @@ const App = () => {
     const [isInitialized, setIsInitialized] = useState(false);
     const [brushSize, setBrushSize] = useState(5);
     const gameplayConnection = useContext(GameplayHubContext);
-    
+    const [aiGuessingEnabled, setAiGuessingEnabled] = useState(true);
+
     const toNorm = ({x,y}) => {
         const r = canvasRef.current.getBoundingClientRect();
         return { x: x / r.width, y: y / r.height };
@@ -100,17 +101,45 @@ const App = () => {
         strokesRef.current = [];
         clearCanvas();
     };
-
+    
     useEffect(() => {
         if(!gameplayConnection) {
             console.log("Gameplay connection not established yet");
             return;
         }
+
         gameplayConnection.on("ReceiveDraw", onReceiveDraw);
         gameplayConnection.on("ReceiveClear", onReceiveClear);
+
+        const onReceiveCanvasState = (serverStrokes) => {
+            if (!serverStrokes) return;
+            const normalized = serverStrokes.map(s => {
+                const points = (s.points ?? s.Points ?? []).map(p => ({
+                    x: p.x ?? p.X,
+                    y: p.y ?? p.Y
+                }));
+                return {
+                    points,
+                    color: s.color ?? s.Color,
+                    size: s.size ?? s.Size,
+                    eraser: s.eraser ?? s.Eraser,
+                    canvasW: s.canvasW ?? s.CanvasW ?? (canvasRef.current?.getBoundingClientRect().width ?? 0),
+                    canvasH: s.canvasH ?? s.CanvasH ?? (canvasRef.current?.getBoundingClientRect().height ?? 0)
+                };
+            });
+
+            strokesRef.current = normalized;
+            requestAnimationFrame(() => {
+                redrawAll();
+            });
+        };
+
+        gameplayConnection.on("ReceiveCanvasState", onReceiveCanvasState);
+
         return () => {
             gameplayConnection.off("ReceiveDraw", onReceiveDraw);
             gameplayConnection.off("ReceiveClear", onReceiveClear);
+            gameplayConnection.off("ReceiveCanvasState");
         };
     }, [gameplayConnection]);
 
@@ -146,6 +175,9 @@ const App = () => {
 
             clearCanvas();
             setIsInitialized(true);
+
+            // If strokes already received from server before canvas init, redraw now
+            requestAnimationFrame(() => redrawAll());
         }
     }, [isInitialized, color]);
 
@@ -166,7 +198,7 @@ const App = () => {
     };
 
     const startDrawing = (e) => {
-        if (!canvasRef.current) return;
+        if (!canvasRef.current || !isDrawer) return;
         const { x, y } = getCoordinates(e);
         const ctx = canvasRef.current.getContext("2d");
         const rect = canvasRef.current.getBoundingClientRect();
@@ -200,7 +232,7 @@ const App = () => {
     };
 
     const draw = (e) => {
-        if (!isDrawing || !canvasRef.current) return;
+        if (!isDrawing || !canvasRef.current || !isDrawer) return;
         const { x, y } = getCoordinates(e);
         const ctx = canvasRef.current.getContext("2d");
         ctx.lineTo(x, y);
@@ -279,75 +311,132 @@ const App = () => {
         return () => ro.disconnect();
     }, []);
 
+    // Listener for correct AI guess
+    useEffect(() => {
+        if (!gameplayConnection) return;
+
+        const handleAiGuessed = () => {
+            setAiGuessingEnabled(false);
+        };
+
+        gameplayConnection.on("AiGuessedCorrectly", handleAiGuessed);
+
+        return () => {
+            gameplayConnection.off("AiGuessedCorrectly", handleAiGuessed);
+        };
+    }, [gameplayConnection]);
+
+    // Effect to send images of canvas to backend for AI to guess
+    useEffect(() => {
+        if (!isDrawer || !gameplayConnection || !aiGuessingEnabled || !canvasRef.current) return;
+
+        let intervalId;
+
+        const sendSnapshot = () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+
+                try {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8 = new Uint8Array(arrayBuffer);
+                    const bytes = btoa(String.fromCharCode(...uint8));
+
+                    await gameplayConnection.invoke(
+                        "SendCanvasSnapshot",
+                        {
+                            imageBytes: bytes,
+                            mimeType: blob.type    
+                        }
+                    );
+                } catch (err) {
+                    console.error("Failed to send canvas snapshot:", err);
+                }
+            }, "image/png");
+        };
+
+        // Send every 10 seconds
+        intervalId = setInterval(sendSnapshot, 10_000);
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [isDrawer, gameplayConnection, isInitialized, aiGuessingEnabled]);
+
+    // Enable sending canvas to AI if the user is the drawer
+    useEffect(() => {
+        if (isDrawer) {
+            setAiGuessingEnabled(true);
+        } else {
+            setAiGuessingEnabled(false);
+        }
+    }, [isDrawer]);
+    
     return (
         <div className="flex h-full min-w-screen p-1 bg-gray-100 font-sans">
             <div className="w-screen h-[80vh] p-4 bg-gray-100 font-sans flex flex-col mr-4">
 
                 {/* Guess the word prompt */}
-                <WordComponent />
+                <WordComponent word={word}/>
                 
-                {/* Color Palette and Tools */}
-                <div className="flex flex-wrap items-center justify-center space-x-2 mb-4">
-                    <button
-                        onClick={() => { setColor("black"); setIsEraser(false); }}
-                        className={styles.colorButton}
-                        style={{ backgroundColor: "black" }}
-                    />
-                    <button
-                        onClick={() => { setColor("red"); setIsEraser(false); }}
-                        className={styles.colorButton}
-                        style={{ backgroundColor: "red" }}
-                    />
-                    <button
-                        onClick={() => { setColor("blue"); setIsEraser(false); }}
-                        className={styles.colorButton}
-                        style={{ backgroundColor: "blue" }}
-                    />
-                    <button
-                        onClick={() => { setColor("green"); setIsEraser(false); }}
-                        className={styles.colorButton}
-                        style={{ backgroundColor: "green" }}
-                    />
-                    <button
-                        onClick={() => { setColor("yellow"); setIsEraser(false); }}
-                        className={styles.colorButton}
-                        style={{ backgroundColor: "yellow" }}
-                    />
+                {isDrawer && (
+                    <div className="flex flex-col items-center mb-4 space-y-2">
+                        <div className="flex flex-wrap items-center justify-center space-x-2">
+                            <button
+                                onClick={() => { setColor("black"); setIsEraser(false); }}
+                                className={styles.colorButton}
+                                style={{ backgroundColor: "black" }}
+                            />
+                            <button
+                                onClick={() => { setColor("red"); setIsEraser(false); }}
+                                className={styles.colorButton}
+                                style={{ backgroundColor: "red" }}
+                            />
+                            <button
+                                onClick={() => { setColor("blue"); setIsEraser(false); }}
+                                className={styles.colorButton}
+                                style={{ backgroundColor: "blue" }}
+                            />
+                            <button
+                                onClick={() => { setColor("green"); setIsEraser(false); }}
+                                className={styles.colorButton}
+                                style={{ backgroundColor: "green" }}
+                            />
+                            <button
+                                onClick={() => { setColor("yellow"); setIsEraser(false); }}
+                                className={styles.colorButton}
+                                style={{ backgroundColor: "yellow" }}
+                            />
+                            <button
+                                onClick={() => setIsEraser(!isEraser)}
+                                className={isEraser ? styles.toolButtonActive : styles.toolButtonInactive}
+                            >
+                                <FaEraser size={20} color={isEraser ? "white" : "gray"} />
+                            </button>
+                            <button
+                                onClick={() => { gameplayConnection?.invoke("SendClear"); strokesRef.current = []; clearCanvas(); }}
+                                className={styles.clearButton}
+                            >
+                                Clear
+                            </button>
+                        </div>
 
-                    {/* Eraser Button */}
-                    <button
-                        onClick={() => setIsEraser(!isEraser)}
-                        className={isEraser ? styles.toolButtonActive : styles.toolButtonInactive}
-                    >
-                        <FaEraser size={20} color={isEraser ? "white" : "gray"} />
-                    </button>
-
-                    {/* Clear Button */}
-                    <button
-                        onClick={() => {
-                            gameplayConnection?.invoke("SendClear");
-                            strokesRef.current = [];
-                            clearCanvas();
-                        }}
-                        className={styles.clearButton}
-                    >
-                        Clear
-                    </button>
-                </div>
-
-                {/* Brush Size Slider */}
-                <div className="flex items-center justify-center mb-4 space-x-2">
-                    <span className={styles.brushLabel}>Brush Size:</span>
-                    <input
-                        type="range"
-                        min="1"
-                        max="50"
-                        value={brushSize}
-                        onChange={(e) => setBrushSize(e.target.valueAsNumber)}
-                        className={styles.brushSlider}
-                    />
-                    <span className={styles.brushValueDisplay}>{brushSize}</span>
-                </div>
+                        <div className="flex items-center justify-center space-x-2">
+                            <span className={styles.brushLabel}>Brush Size:</span>
+                            <input
+                                type="range"
+                                min="1"
+                                max="50"
+                                value={brushSize}
+                                onChange={(e) => setBrushSize(e.target.valueAsNumber)}
+                                className={styles.brushSlider}
+                            />
+                            <span className={styles.brushValueDisplay}>{brushSize}</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Canvas */}
                 <canvas
@@ -359,16 +448,17 @@ const App = () => {
                     onMouseLeave={stopDrawing}
                 />
 
-                {/* Display current color/tool */}
-                <div className="mt-4 text-center text-gray-600">
-                    Current Tool: <span className="font-semibold">{isEraser ? "Eraser" : "Pen"}</span>
-                    {!isEraser && (
-                        <span
-                            className="ml-2 w-4 h-4 rounded-full inline-block align-middle"
-                            style={{ backgroundColor: color }}
-                        />
-                    )}
-                </div>
+                {isDrawer && (
+                    <div className="mt-4 text-center text-gray-600">
+                        Current Tool: <span className="font-semibold">{isEraser ? "Eraser" : "Pen"}</span>
+                        {!isEraser && (
+                            <span
+                                className="ml-2 w-4 h-4 rounded-full inline-block align-middle"
+                                style={{ backgroundColor: color }}
+                            />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

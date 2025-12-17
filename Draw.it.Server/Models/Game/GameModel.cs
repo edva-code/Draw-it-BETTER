@@ -1,4 +1,8 @@
-﻿namespace Draw.it.Server.Models.Game;
+using Draw.it.Server.Hubs.DTO;
+
+using Draw.it.Server.Enums;
+
+namespace Draw.it.Server.Models.Game;
 
 public class GameModel
 {
@@ -13,4 +17,8 @@ public class GameModel
     public Dictionary<long, int> CorrectGuesses { get; set; } = [];
     public Dictionary<long, int> RoundScores { get; set; } = [];
     public Dictionary<long, int> TotalScores { get; set; } = [];
+    public GamePhase CurrentPhase { get; set; } = GamePhase.DrawingPhase;
+    public List<StrokeDto> CanvasStrokes { get; set; } = new();
+    public bool TimerStarted { get; set; } = false;
+    public DateTime RoundEnd { get; set; }
 }

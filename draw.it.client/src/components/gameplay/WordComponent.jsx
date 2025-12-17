@@ -1,23 +1,5 @@
-﻿import React, { useState, useEffect, useContext } from "react";
-import {GameplayHubContext} from "@/utils/GameplayHubProvider.jsx";
-
-export default function WordComponent() {
-
-    const [word, setWord] = useState("");
-    const gameplayConnection = useContext(GameplayHubContext);
-
-    
-    useEffect(() => {
-        if (!gameplayConnection) return;
-
-        gameplayConnection.on("ReceiveWordToDraw", (word) => {
-            setWord(word);
-        });
-        return () => {
-            gameplayConnection.off("ReceiveWordToDraw");
-        };
-    }, [gameplayConnection]);
-    
+﻿import React from "react";
+export default function WordComponent({ word }) {
     
     return (
         //{/* Word to draw/guess */}

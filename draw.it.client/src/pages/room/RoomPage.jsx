@@ -1,14 +1,14 @@
 import "./RoomPage.css";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import Button from "@/components/button/button.jsx";
+import Button from "@/components/button/Button.jsx";
 import { LobbyHubContext } from "@/utils/LobbyHubProvider.jsx";
 
 const initialRoomState = {
     id: "",
     name: "Game Room",
     players: [],
-    settings: { durationSec: 90, rounds: 3, category: "Loading..." },
+    settings: { durationSec: 90, rounds: 3, category: "Loading...", hasAiPlayer: false },
 };
 
 export default function RoomPage() {
@@ -51,6 +51,7 @@ export default function RoomPage() {
                     category: settings.categoryName,
                     durationSec: settings.drawingTime,
                     rounds: settings.numberOfRounds,
+                    hasAiPlayer: settings.hasAiPlayer
                 }
             }));
         });
@@ -100,7 +101,7 @@ export default function RoomPage() {
                     <div className="players-section">
                         <h2 className="section-title">PLAYERS</h2>
                         <div className="player-count">
-                            {players.length} / 4
+                            {players.length}
                         </div>
                         <ul className="players-list">
                             {players.map((p) => (
@@ -140,6 +141,10 @@ export default function RoomPage() {
                         <div className="game-setting">
                             <span className="setting-label">ROUNDS:</span>
                             <span className="setting-value">{settings.rounds}</span>
+                        </div>
+                        <div className="game-setting">
+                            <span className="setting-label">HAS AI PLAYER:</span>
+                            <span className="setting-value">{settings.hasAiPlayer ? "✅" : "❌"}</span>
                         </div>
                         <div className="leave-button-container">
                             <Button onClick={leaveRoom}>

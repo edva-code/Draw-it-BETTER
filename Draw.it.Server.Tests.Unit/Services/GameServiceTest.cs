@@ -1,5 +1,6 @@
 ﻿using Draw.it.Server.Enums;
 using Draw.it.Server.Exceptions;
+using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Models.Game;
 using Draw.it.Server.Models.Room;
 using Draw.it.Server.Models.User;
@@ -133,7 +134,7 @@ public class GameServiceTest
 
         Assert.That(w, Is.EqualTo("CAT"));
     }
-    
+
     [Test]
     public void whenGetDrawerId_thenReturnCurrentDrawer()
     {
@@ -172,6 +173,33 @@ public class GameServiceTest
     }
 
     [Test]
+    public void whenAddGuessedPlayer_thenDrawerGetsPointsForCorrectGuess()
+    {
+        // Arrange
+        _roomService.Setup(r => r.GetUsersInRoom(RoomId))
+            .Returns(new List<UserModel>
+            {
+                new UserModel { Id = DrawerId, Name = "Drawer" },
+                new UserModel { Id = Player2Id, Name = "Player2" }
+            });
+
+        _game.RoundScores[DrawerId] = 1;
+
+        // Act 
+        _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+
+        // Assert 
+        Assert.That(_game.RoundScores[DrawerId], Is.EqualTo(2));
+        Assert.That(_game.RoundScores[Player2Id], Is.EqualTo(2));
+
+        Assert.That(turnEnded, Is.True);
+        Assert.That(roundEnded, Is.False);
+        Assert.That(gameEnded, Is.False);
+
+        _repo.Verify(r => r.Save(It.IsAny<GameModel>()), Times.Exactly(2));
+    }
+
+    [Test]
     public void whenGetMaskedWord_thenMaskNonSpaces()
     {
         var masked = _service.GetMaskedWord("DOG CAT");
@@ -182,5 +210,198 @@ public class GameServiceTest
     public void whenGetMaskedWord_empty_thenReturnEmpty()
     {
         Assert.That(_service.GetMaskedWord(""), Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public void whenHandleTimerEnd_andDrawingPhase_thenAdvanceTurnAndReturnWord()
+    {
+        // Arrange
+        _game.CurrentPhase = GamePhase.DrawingPhase;
+
+        var users = new List<UserModel>
+    {
+        new UserModel { Id = 1, Name = "A" },
+        new UserModel { Id = 2, Name = "B" }
+    };
+        _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
+
+        // Act
+        _service.HandleTimerEnd(RoomId, out string wordToDraw, out bool roundEnded, out bool gameEnded, out bool alreadyCalled);
+
+        // Assert
+        Assert.That(wordToDraw, Is.EqualTo("APPLE")); // Original word
+        Assert.That(alreadyCalled, Is.False);
+        Assert.That(roundEnded, Is.False); // Only 1 turn advanced, not end of round
+        Assert.That(gameEnded, Is.False);
+        Assert.That(_game.CurrentPhase, Is.EqualTo(GamePhase.EndingPhase));
+
+        // Verify turn was advanced
+        Assert.That(_game.CurrentDrawerId, Is.Not.EqualTo(DrawerId)); // Should be Player2Id now
+        Assert.That(_game.CurrentTurnIndex, Is.EqualTo(1)); // Next turn index
+
+        _repo.Verify(r => r.Save(_game), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void whenHandleTimerEnd_andNotDrawingPhase_thenAlreadyCalledTrue()
+    {
+        // Arrange
+        _game.CurrentPhase = GamePhase.EndingPhase; // Not DrawingPhase
+
+        // Act
+        _service.HandleTimerEnd(RoomId, out string wordToDraw, out bool roundEnded, out bool gameEnded, out bool alreadyCalled);
+
+        // Assert
+        Assert.That(alreadyCalled, Is.True);
+        Assert.That(wordToDraw, Is.EqualTo(string.Empty));
+        Assert.That(roundEnded, Is.False);
+        Assert.That(gameEnded, Is.False);
+
+        // Verify no changes were made
+        Assert.That(_game.CurrentDrawerId, Is.EqualTo(DrawerId)); // Still original drawer
+        Assert.That(_game.CurrentTurnIndex, Is.EqualTo(0)); // Still original turn index
+
+        _repo.Verify(r => r.Save(_game), Times.Never);
+    }
+
+    [Test]
+    public void whenHandleTimerEnd_andLastTurnOfRound_thenRoundEndedTrue()
+    {
+        // Arrange
+        _game.CurrentPhase = GamePhase.DrawingPhase;
+        _game.CurrentTurnIndex = 1; // Last turn (0-based index, 2 players total)
+        _game.PlayerCount = 2;
+
+        var users = new List<UserModel>
+    {
+        new UserModel { Id = 1, Name = "A" },
+        new UserModel { Id = 2, Name = "B" }
+    };
+        _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
+
+        // Setup room for total rounds
+        _room.Settings.NumberOfRounds = 3;
+        _game.CurrentRound = 1;
+
+        // Act
+        _service.HandleTimerEnd(RoomId, out string wordToDraw, out bool roundEnded, out bool gameEnded, out bool alreadyCalled);
+
+        // Assert
+        Assert.That(roundEnded, Is.True);
+        Assert.That(gameEnded, Is.False); // Not last round yet
+        Assert.That(alreadyCalled, Is.False);
+        Assert.That(_game.CurrentRound, Is.EqualTo(2)); // Round advanced
+
+        // Scores should be transferred from RoundScores to TotalScores
+        _repo.Verify(r => r.Save(_game), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void whenHandleTimerEnd_andLastRound_thenGameEndedTrue()
+    {
+        // Arrange
+        _game.CurrentPhase = GamePhase.DrawingPhase;
+        _game.CurrentTurnIndex = 1; // Last turn
+        _game.PlayerCount = 2;
+        _game.CurrentRound = 3; // Last round
+
+        var users = new List<UserModel>
+    {
+        new UserModel { Id = 1, Name = "A" },
+        new UserModel { Id = 2, Name = "B" }
+    };
+        _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
+
+        // Setup room for total rounds
+        _room.Settings.NumberOfRounds = 3;
+
+        // Act
+        _service.HandleTimerEnd(RoomId, out string wordToDraw, out bool roundEnded, out bool gameEnded, out bool alreadyCalled);
+
+        // Assert
+        Assert.That(roundEnded, Is.True);
+        Assert.That(gameEnded, Is.True); // Game should end
+        Assert.That(alreadyCalled, Is.False);
+        Assert.That(_game.CurrentRound, Is.EqualTo(4)); // Round advanced past total
+
+        _repo.Verify(r => r.Save(_game), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void AddCanvasEvent_Start_AddsNewStroke()
+    {
+        var draw = new DrawDto(
+            Type: DrawType.Start,
+            Point: new Point { X = 1, Y = 2 },
+            Color: Color.Red,
+            Size: 5,
+            Eraser: false
+        );
+
+        _service.AddCanvasEvent(RoomId, draw);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(1));
+        var stroke = _game.CanvasStrokes[0];
+        Assert.That(stroke.Points.Count, Is.EqualTo(1));
+        Assert.That(stroke.Color, Is.EqualTo(Color.Red));
+        Assert.That(stroke.Size, Is.EqualTo(5));
+
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void AddCanvasEvent_Move_AppendsPointToLastStroke()
+    {
+        var stroke = new StrokeDto(new List<Point> { new Point { X = 0, Y = 0 } }, Color.Blue, 3, false);
+        _game.CanvasStrokes.Add(stroke);
+
+        var draw = new DrawDto(
+            Type: DrawType.Move,
+            Point: new Point { X = 5, Y = 5 },
+            Color: Color.Red,
+            Size: 5,
+            Eraser: false
+        );
+
+        _service.AddCanvasEvent(RoomId, draw);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(1));
+        Assert.That(_game.CanvasStrokes[0].Points.Count, Is.EqualTo(2));
+        Assert.That(_game.CanvasStrokes[0].Points.Last().X, Is.EqualTo(5));
+        Assert.That(_game.CanvasStrokes[0].Points.Last().Y, Is.EqualTo(5));
+
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void AddCanvasEvent_NullDraw_DoesNothing()
+    {
+        _service.AddCanvasEvent(RoomId, null!);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(0));
+        _repo.Verify(r => r.Save(It.IsAny<GameModel>()), Times.Never);
+    }
+
+    [Test]
+    public void ClearCanvasStrokes_RemovesAllStrokes()
+    {
+        _game.CanvasStrokes.Add(new StrokeDto(new List<Point> { new Point { X = 1, Y = 1 } }, Color.Black, 2, false));
+
+        _service.ClearCanvasStrokes(RoomId);
+
+        Assert.That(_game.CanvasStrokes.Count, Is.EqualTo(0));
+        _repo.Verify(r => r.Save(_game), Times.Once);
+    }
+
+    [Test]
+    public void GetCanvasStrokes_ReturnsAllStrokesAsReadOnly()
+    {
+        var stroke = new StrokeDto(new List<Point> { new Point { X = 0, Y = 0 } }, Color.Green, 4, false);
+        _game.CanvasStrokes.Add(stroke);
+
+        var strokes = _game.CanvasStrokes;
+
+        Assert.That(strokes.Count, Is.EqualTo(1));
+        Assert.That(strokes[0], Is.EqualTo(stroke));
     }
 }

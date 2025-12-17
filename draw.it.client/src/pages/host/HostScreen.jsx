@@ -2,7 +2,7 @@ import './HostScreen.css';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import * as signalR from '@microsoft/signalr';
-import Button from "@/components/button/button.jsx";
+import Button from "@/components/button/Button.jsx";
 import TextInput from "@/components/input/TextInput.jsx";
 import NumberInput from "@/components/input/NumberInput.jsx";
 import RadioGroup from "@/components/input/RadioGroup.jsx";
@@ -27,7 +27,8 @@ const CATEGORIES = [
     { id: 1, name: 'Animals' },
     { id: 2, name: 'Vehicle type' },
     { id: 3, name: 'Games' },
-    { id: 4, name: 'Custom' },
+    { id: 4, name: 'Food' },
+    { id: 5, name: 'Household items' },
 ];
 
 function HostScreen() {
@@ -40,7 +41,8 @@ function HostScreen() {
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [joinedPlayers, setJoinedPlayers] = useState([]);
-
+    const [addAiPlayer, setAddAiPlayer] = useState(false);
+    
     const navigate = useNavigate();
     
     useEffect(() => {
@@ -56,7 +58,7 @@ function HostScreen() {
                 // small pause
                 await new Promise(r => setTimeout(r, 300));
             }
-            await sendSettingsUpdate(categoryId, drawingTime, numberOfRounds, roomName);
+            await sendSettingsUpdate(categoryId, drawingTime, numberOfRounds, roomName, addAiPlayer);
         })();
 
         lobbyConnection.on("ReceiveUpdateSettings", (newCategoryId, newDrawingTime, newNumberOfRounds) => {
@@ -85,7 +87,7 @@ function HostScreen() {
         }
     }, [lobbyConnection, roomId]);
 
-    const sendSettingsUpdate = async (catId, drawingTime, numberOfRounds, roomName) => {
+    const sendSettingsUpdate = async (catId, drawingTime, numberOfRounds, roomName, addAiPlayer) => {
         if (!lobbyConnection) {
             console.error("SignalR connection not established.");
             return;
@@ -97,6 +99,7 @@ function HostScreen() {
                 categoryId: Number(catId),
                 drawingTime: Number(drawingTime),
                 numberOfRounds: Number(numberOfRounds),
+                hasAiPlayer: Boolean(addAiPlayer),
             });
         } catch (err) {
             console.error('Error sending real-time settings update:', err);
@@ -106,41 +109,27 @@ function HostScreen() {
 
     // Waits 500ms after the last change before sending the update
     const debouncedSend = useMemo(() => {
-        return debounce((...args) => {
-            sendSettingsUpdate(...args);
+        return debounce((catId, drawTime, rounds, name, addAiPlayer) => {
+            sendSettingsUpdate(catId, drawTime, rounds, name, addAiPlayer);
         }, 500);
-    }, [lobbyConnection, roomId]);
+    }, [lobbyConnection, roomId, sendSettingsUpdate]);
 
     const handleRoomNameChange = (event) => {
         const newName = event.target.value || `Room-${roomId}`;
         setRoomName(newName);
-        debouncedSend(categoryId, drawingTime, numberOfRounds, newName);
+        debouncedSend(categoryId, drawingTime, numberOfRounds, newName, addAiPlayer);
     };
 
     const handleCategoryChange = (event) => {
         const newCatId = event.target.value;
         setCategoryId(newCatId);
-        debouncedSend(newCatId, drawingTime, numberOfRounds, roomName);
+        debouncedSend(newCatId, drawingTime, numberOfRounds, roomName, addAiPlayer);
     };
 
     const RULES = Object.freeze({
         drawingTime: { min: 20, max: 180, step: 1 },
         numberOfRounds: { min: 1, max: 10, step: 1 },
     });
-
-    // Waits 500ms after the last input before clamping and snapping the value
-    const debouncedClampAndSnap = useMemo(() => {
-        return debounce((val, rules, setter, fieldName) => {
-            const newValue = clampAndSnap(val, rules);
-            setter(newValue);
-
-            if (fieldName === 'drawingTime') {
-                sendSettingsUpdate(categoryId, newValue, numberOfRounds, roomName);
-            } else if (fieldName === 'numberOfRounds') {
-                sendSettingsUpdate(categoryId, drawingTime, newValue, roomName);
-            }
-        }, 1000);
-    }, [lobbyConnection, roomId]);
 
     const clampAndSnap = (val, { min, max, step }) => {
         let v = Number(val);
@@ -152,6 +141,20 @@ function HostScreen() {
         }
         return v;
     };
+
+    // Waits 500ms after the last input before clamping and snapping the value
+    const debouncedClampAndSnap = useMemo(() => {
+        return debounce((val, rules, setter, fieldName) => {
+            const newValue = clampAndSnap(val, rules);
+            setter(newValue);
+
+            if (fieldName === 'drawingTime') {
+                debouncedSend(categoryId, newValue, numberOfRounds, roomName, addAiPlayer);
+            } else if (fieldName === 'numberOfRounds') {
+                debouncedSend(categoryId, drawingTime, newValue, roomName, addAiPlayer);
+            }
+        }, 1000);
+    }, [categoryId, drawingTime, numberOfRounds, roomName, addAiPlayer, debouncedSend]);
 
     const handleNumberInput = (event, setter, fieldName) => {
         const rules = RULES[fieldName];
@@ -256,6 +259,19 @@ function HostScreen() {
                                     min={RULES.numberOfRounds.min}
                                     max={RULES.numberOfRounds.max}
                                     step={RULES.numberOfRounds.step}
+                                />
+                            </div>
+                            <div className="setting-item">
+                                <label htmlFor="addAiPlayer">Add AI player:</label>
+                                <input
+                                    id="addAiPlayer"
+                                    type="checkbox"
+                                    checked={addAiPlayer}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setAddAiPlayer(checked);
+                                        debouncedSend(categoryId, drawingTime, numberOfRounds, roomName, checked);
+                                    }}
                                 />
                             </div>
                         </div>

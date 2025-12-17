@@ -26,7 +26,7 @@ public class RoomServiceTest
     private Mock<IUserService> _userService = new();
     private Mock<IUserRepository> _userRepository = new();
     private Mock<ILogger<RoomService>> _logger = new();
-    
+
     [SetUp]
     public void Setup()
     {
@@ -284,7 +284,7 @@ public class RoomServiceTest
         _userService.Verify(s => s.SetRoom(UserId, RoomId), Times.Once);
         _userService.Verify(s => s.SetReadyStatus(UserId, false), Times.Once);
     }
-    
+
     [Test]
     public void whenLeaveRoom_andUserNotInRoom_thenThrowAppException()
     {
@@ -337,7 +337,7 @@ public class RoomServiceTest
 
         _userService.Verify(s => s.SetRoom(UserId, null), Times.Once);
     }
-    
+
 
     [Test]
     public void whenIsHost_andUserNotInRoom_thenThrowAppException()
@@ -488,6 +488,38 @@ public class RoomServiceTest
 
         Assert.That(room.Status, Is.EqualTo(RoomStatus.InGame));
         _roomRepository.Verify(r => r.Save(room), Times.Once);
+    }
+
+    [Test]
+    public void whenStartGame_andAiPlayer_thenStatusSetToInGameAndRoomSavedAndAiPlayerCreated()
+    {
+        var user = CreateUser(UserId, UserName, roomId: RoomId);
+        var room = CreateRoom(RoomId, hostId: UserId, status: RoomStatus.InLobby);
+        room.Settings.HasAiPlayer = true;
+
+        _roomRepository
+            .Setup(r => r.FindById(RoomId))
+            .Returns(room);
+
+        _roomRepository
+            .Setup(r => r.ExistsById(RoomId))
+            .Returns(true);
+
+        var players = new List<UserModel>
+        {
+            CreateUser(UserId, UserName, roomId: RoomId, isReady: true),
+            CreateUser(OtherUserId, OtherUserName, roomId: RoomId, isReady: true)
+        };
+
+        _userRepository
+            .Setup(r => r.FindByRoomId(RoomId))
+            .Returns(players);
+
+        _roomService.StartGame(RoomId, user);
+
+        Assert.That(room.Status, Is.EqualTo(RoomStatus.InGame));
+        _roomRepository.Verify(r => r.Save(room), Times.Once);
+        _userService.Verify(r => r.CreateAiUser(room.Id), Times.Once);
     }
 
     [Test]
