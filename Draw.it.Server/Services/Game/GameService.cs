@@ -94,6 +94,10 @@ public class GameService : IGameService
 
         game.GuessedPlayersIds.Add(userId);
 
+        var drawerId = game.CurrentDrawerId;
+        if (!game.RoundScores.TryAdd(drawerId, 1))
+            game.RoundScores[drawerId] += 1;
+
         _gameRepository.Save(game);
 
         if (game.GuessedPlayersIds.Count >= game.PlayerCount - 1)
