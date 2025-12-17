@@ -24,9 +24,9 @@ We are developing **Draw\.it** in three main stages:
 
 ### 🐥 Final (Full Release)
 
-- [ ] ~~**Customizations** – player avatars, brush settings, colors, themes~~
+- [ ] ~~**Customizations** – player avatars, brush settings, themes~~
 - [ ] ~~**Voting system** – players can vote for the best drawing~~
-- [ ] ~~**Extra features** – improved UI/UX, animations, sound effects, more categories~~
+- [x] **Extra features** – improved UI/UX, more categories, real-time player list with scores
 - [x] **AI** - optional extra player which tries to guess the drawing
 
 ## 🛠️ Development Workflow
