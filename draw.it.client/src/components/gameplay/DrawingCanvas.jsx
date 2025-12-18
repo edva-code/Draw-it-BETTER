@@ -357,8 +357,8 @@ const App = ({ isDrawer, word }) => {
             }, "image/png");
         };
 
-        // Send every 10 seconds
-        intervalId = setInterval(sendSnapshot, 10_000);
+        // Send every 13 seconds
+        intervalId = setInterval(sendSnapshot, 13_000);
 
         return () => {
             if (intervalId) clearInterval(intervalId);
