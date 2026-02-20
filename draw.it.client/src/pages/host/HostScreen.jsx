@@ -154,7 +154,7 @@ function HostScreen() {
                 debouncedSend(categoryId, drawingTime, newValue, roomName, addAiPlayer);
             }
         }, 1000);
-    }, [categoryId, drawingTime, numberOfRounds, roomName, addAiPlayer, debouncedSend]);
+    }, [lobbyConnection, roomId]);
 
     const handleNumberInput = (event, setter, fieldName) => {
         const rules = RULES[fieldName];
