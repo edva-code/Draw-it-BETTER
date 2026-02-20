@@ -3,9 +3,10 @@ import { useContext, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import * as signalR from '@microsoft/signalr';
 import Button from "@/components/button/Button.jsx";
-import TextInput from "@/components/input/TextInput.jsx";
+import Checkbox from "@/components/input/Checkbox.jsx";
 import NumberInput from "@/components/input/NumberInput.jsx";
 import RadioGroup from "@/components/input/RadioGroup.jsx";
+import TextInput from "@/components/input/TextInput.jsx";
 import { LobbyHubContext } from "@/utils/LobbyHubProvider.jsx";
 
 // This debounce utility is for sending real time updates
@@ -109,10 +110,8 @@ function HostScreen() {
 
     // Waits 500ms after the last change before sending the update
     const debouncedSend = useMemo(() => {
-        return debounce((catId, drawTime, rounds, name, addAiPlayer) => {
-            sendSettingsUpdate(catId, drawTime, rounds, name, addAiPlayer);
-        }, 500);
-    }, [lobbyConnection, roomId, sendSettingsUpdate]);
+        return debounce(sendSettingsUpdate, 500);
+    }, [lobbyConnection, roomId]);
 
     const handleRoomNameChange = (event) => {
         const newName = event.target.value || `Room-${roomId}`;
@@ -263,9 +262,8 @@ function HostScreen() {
                             </div>
                             <div className="setting-item">
                                 <label htmlFor="addAiPlayer">Add AI player:</label>
-                                <input
+                                <Checkbox
                                     id="addAiPlayer"
-                                    type="checkbox"
                                     checked={addAiPlayer}
                                     onChange={(e) => {
                                         const checked = e.target.checked;
