@@ -3,7 +3,10 @@ import { useContext, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import * as signalR from '@microsoft/signalr';
 import Button from "@/components/button/Button.jsx";
-import Input from "@/components/input/Input.jsx"
+import Checkbox from "@/components/input/Checkbox.jsx";
+import NumberInput from "@/components/input/NumberInput.jsx";
+import RadioGroup from "@/components/input/RadioGroup.jsx";
+import TextInput from "@/components/input/TextInput.jsx";
 import { LobbyHubContext } from "@/utils/LobbyHubProvider.jsx";
 
 // This debounce utility is for sending real time updates
@@ -56,7 +59,7 @@ function HostScreen() {
                 // small pause
                 await new Promise(r => setTimeout(r, 300));
             }
-            await sendSettingsUpdate(roomName, categoryId, drawingTime, numberOfRounds, addAiPlayer);
+            await sendSettingsUpdate(categoryId, drawingTime, numberOfRounds, roomName, addAiPlayer);
         })();
 
         lobbyConnection.on("ReceiveUpdateSettings", (newCategoryId, newDrawingTime, newNumberOfRounds) => {
@@ -85,7 +88,7 @@ function HostScreen() {
         }
     }, [lobbyConnection, roomId]);
 
-    const sendSettingsUpdate = async (roomName, catId, drawingTime, numberOfRounds, addAiPlayer) => {
+    const sendSettingsUpdate = async (catId, drawingTime, numberOfRounds, roomName, addAiPlayer) => {
         if (!lobbyConnection) {
             console.error("SignalR connection not established.");
             return;
@@ -97,7 +100,7 @@ function HostScreen() {
                 categoryId: Number(catId),
                 drawingTime: Number(drawingTime),
                 numberOfRounds: Number(numberOfRounds),
-                hasAiPlayer: addAiPlayer
+                hasAiPlayer: Boolean(addAiPlayer),
             });
         } catch (err) {
             console.error('Error sending real-time settings update:', err);
@@ -107,9 +110,7 @@ function HostScreen() {
 
     // Waits 500ms after the last change before sending the update
     const debouncedSend = useMemo(() => {
-        return debounce((catId, drawTime, rounds, name, addAiPlayer) => {
-            sendSettingsUpdate(name, catId, drawTime, rounds, addAiPlayer);
-        }, 500);
+        return debounce(sendSettingsUpdate, 500);
     }, [lobbyConnection, roomId]);
 
     const handleRoomNameChange = (event) => {
@@ -124,17 +125,42 @@ function HostScreen() {
         debouncedSend(newCatId, drawingTime, numberOfRounds, roomName, addAiPlayer);
     };
 
-    const handleNumberInput = (event, setter, fieldName) => {
-        const value = parseInt(event.target.value);
-        const newValue = isNaN(value) ? 0 : value;
+    const RULES = Object.freeze({
+        drawingTime: { min: 20, max: 180, step: 1 },
+        numberOfRounds: { min: 1, max: 10, step: 1 },
+    });
 
-        setter(newValue);
-
-        if (fieldName === 'drawingTime') {
-            debouncedSend(categoryId, newValue, numberOfRounds, roomName, addAiPlayer);
-        } else if (fieldName === 'numberOfRounds') {
-            debouncedSend(categoryId, drawingTime, newValue, roomName, addAiPlayer);
+    const clampAndSnap = (val, { min, max, step }) => {
+        let v = Number(val);
+        if (Number.isNaN(v)) v = min;
+        v = Math.min(max, Math.max(min, v));
+        const base = min ?? 0;
+        if (step && step > 0) {
+            v = Math.round((v - base) / step) * step + base;
         }
+        return v;
+    };
+
+    // Waits 500ms after the last input before clamping and snapping the value
+    const debouncedClampAndSnap = useMemo(() => {
+        return debounce((val, rules, setter, fieldName) => {
+            const newValue = clampAndSnap(val, rules);
+            setter(newValue);
+
+            if (fieldName === 'drawingTime') {
+                debouncedSend(categoryId, newValue, numberOfRounds, roomName, addAiPlayer);
+            } else if (fieldName === 'numberOfRounds') {
+                debouncedSend(categoryId, drawingTime, newValue, roomName, addAiPlayer);
+            }
+        }, 1000);
+    }, [lobbyConnection, roomId]);
+
+    const handleNumberInput = (event, setter, fieldName) => {
+        const rules = RULES[fieldName];
+
+        setter(event.target.value);
+
+        debouncedClampAndSnap(event.target.value, rules, setter, fieldName);
     };
 
     const startGame = async () => {
@@ -162,9 +188,8 @@ function HostScreen() {
             <div className="top-info-bar">
                 <div className="room-name-input">
                     <label htmlFor="roomName">Room Name:</label>
-                    <Input
+                    <TextInput
                         id="roomName"
-                        type="text"
                         value={roomName}
                         onChange={handleRoomNameChange}
                         placeholder="e.g., Fun Room"
@@ -203,59 +228,43 @@ function HostScreen() {
                     <div className="settings-content">
                         <div className="categories-section">
                             <h3>Choose Category:</h3>
-                            <div className="radio-group" style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '8px',
-                                alignItems: 'flex-start'
-                            }}>
-                                {CATEGORIES.map(cat => (
-                                    <label key={cat.id} className="radio-label">
-                                        <input
-                                            type="radio"
-                                            name="categoryId"
-                                            value={cat.id.toString()}
-                                            checked={categoryId === cat.id.toString()}
-                                            onChange={handleCategoryChange}
-                                            className="category-radio"
-                                        />
-                                        {cat.name}
-                                    </label>
-                                ))}
-                            </div>
+                            <RadioGroup
+                                name="categoryId"
+                                options={CATEGORIES}
+                                value={categoryId}
+                                onChange={handleCategoryChange}
+                                className="radio-group"
+                            />
                         </div>
 
                         <div className="game-options-section">
                             <div className="setting-item">
                                 <label htmlFor="drawingTime">Drawing Time (seconds):</label>
-                                <Input
+                                <NumberInput
                                     id="drawingTime"
-                                    type="number"
                                     value={drawingTime}
                                     onChange={(e) => handleNumberInput(e, setDrawingTime, 'drawingTime')}
-                                    min="20"
-                                    max="180"
-                                    step="1"
+                                    min={RULES.drawingTime.min}
+                                    max={RULES.drawingTime.max}
+                                    step={RULES.drawingTime.step}
                                 />
                             </div>
                             <div className="setting-item">
                                 <label htmlFor="numberOfRounds">Number of Rounds:</label>
-                                <Input
+                                <NumberInput
                                     id="numberOfRounds"
-                                    type="number"
                                     value={numberOfRounds}
                                     onChange={(e) => handleNumberInput(e, setNumberOfRounds, 'numberOfRounds')}
-                                    min="1"
-                                    max="10"
-                                    step="1"
+                                    min={RULES.numberOfRounds.min}
+                                    max={RULES.numberOfRounds.max}
+                                    step={RULES.numberOfRounds.step}
                                 />
                             </div>
                             <div className="setting-item">
                                 <label htmlFor="addAiPlayer">Add AI player:</label>
-                                <Input
+                                <Checkbox
                                     id="addAiPlayer"
-                                    type="checkbox"
-                                    value={addAiPlayer}
+                                    checked={addAiPlayer}
                                     onChange={(e) => {
                                         const checked = e.target.checked;
                                         setAddAiPlayer(checked);
