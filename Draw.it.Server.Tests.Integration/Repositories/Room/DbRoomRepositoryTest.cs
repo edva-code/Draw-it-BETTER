@@ -35,10 +35,8 @@ public class DbRoomRepositoryTest
             .UseNpgsql(_pgContainer.GetConnectionString())
             .Options;
 
-        // Apply migrations (if your ApplicationDbContext has migrations)
         using (var migrateContext = new ApplicationDbContext(_dbOptions))
         {
-            await migrateContext.Database.EnsureCreatedAsync();
             await migrateContext.Database.MigrateAsync();
         }
     }

@@ -87,6 +87,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -99,14 +100,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("Frontend");
 
+app.UseRouting();
+
 // Use authentication/authorization middlewares
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<LobbyHub>("/lobbyHub");
-app.MapHub<GameplayHub>("/gameplayHub");
+app.MapHub<LobbyHub>("/hubs/lobby");
+app.MapHub<GameplayHub>("/hubs/gameplay");
 
 app.MapFallbackToFile("/index.html");
 

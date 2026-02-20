@@ -17,16 +17,17 @@ We are developing **Draw\.it** in three main stages:
 
 ### 🐣 Beta (Core Gameplay)
 
-- [ ] **Turn-based drawing** – each player gets a turn to draw while others guess
-- [ ] **Round results** – points awarded after each round
-- [ ] **Game results** – scoreboard with overall winner
-- [ ] **Categories** – words grouped by theme (e.g., animals, objects, actions)
+- [x] **Turn-based drawing** – each player gets a turn to draw while others guess
+- [x] **Round results** – points awarded after each round
+- [x] **Game results** – scoreboard with overall winner
+- [x] **Categories** – words grouped by theme (e.g., animals, objects, actions)
 
 ### 🐥 Final (Full Release)
 
-- [ ] **Customizations** – player avatars, brush settings, colors, themes
-- [ ] **Voting system** – players can vote for the best drawing
-- [ ] **Extra features** – improved UI/UX, animations, sound effects, more categories
+- [ ] ~~**Customizations** – player avatars, brush settings, themes~~
+- [ ] ~~**Voting system** – players can vote for the best drawing~~
+- [x] **Extra features** – improved UI/UX, more categories, real-time player list with scores
+- [x] **AI** - optional extra player which tries to guess the drawing
 
 ## 🛠️ Development Workflow
 

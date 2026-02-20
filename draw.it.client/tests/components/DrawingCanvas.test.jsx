@@ -338,13 +338,13 @@ describe('DrawingCanvas', () => {
     });
 
     describe('AI snapshot sending', () => {
-        it('sends a canvas snapshot every 10 seconds when isDrawer=true', async () => {
+        it('sends a canvas snapshot every 13 seconds when isDrawer=true', async () => {
             renderWithContext(<DrawingCanvas isDrawer />);
 
             mockGameplayConnection.invoke.mockClear();
 
             await act(async () => {
-                vi.advanceTimersByTime(10_000);
+                vi.advanceTimersByTime(13_000);
                 await Promise.resolve();
             });
 
@@ -363,7 +363,7 @@ describe('DrawingCanvas', () => {
             // First tick -> snapshot sent
             mockGameplayConnection.invoke.mockClear();
             await act(async () => {
-                vi.advanceTimersByTime(10_000);
+                vi.advanceTimersByTime(13_000);
                 await Promise.resolve();
             });
             expect(mockGameplayConnection.invoke).toHaveBeenCalledWith(
@@ -376,7 +376,7 @@ describe('DrawingCanvas', () => {
             act(() => aiHandler());
 
             await act(async () => {
-                vi.advanceTimersByTime(10_000);
+                vi.advanceTimersByTime(13_000);
                 await Promise.resolve();
             });
 

@@ -36,14 +36,7 @@ flags:
       - Draw.it.Server/Repositories/WordPool/FileStreamWordPoolRepository.cs
   frontend-unit:
     paths:
-      - draw.it.client/src/
-    ignore:
-      - draw.it.client/src/constants/
-      - draw.it.client/src/pages/
-      - draw.it.client/src/utils/api.js
-      - draw.it.client/src/utils/HubFactory.jsx
-      - draw.it.client/src/App.tsx
-      - draw.it.client/src/main.tsx
+      - draw.it.client/src/**/components/
 
 ignore:
   - Draw.it.Server/Program.cs

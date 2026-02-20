@@ -403,33 +403,40 @@ public class RoomServiceTest
         Assert.Throws<AppException>(() => _roomService.StartGame(RoomId, user));
     }
 
-    [Test]
-    public void whenStartGame_andLessThanTwoPlayers_thenThrowAppException()
+    [TestCase(0, false, true)]
+    [TestCase(0, true, true)]
+    [TestCase(1, false, true)]
+    [TestCase(1, true, false)]
+    [TestCase(2, false, false)]
+    [TestCase(2, true, false)]
+    public void StartGame_playerCountAndAiCombination_coversAllBranches(
+        int playerCount, bool hasAi, bool shouldThrow)
     {
         var user = CreateUser(UserId, UserName, roomId: RoomId);
         var room = CreateRoom(RoomId, hostId: UserId, status: RoomStatus.InLobby);
+        room.Settings.HasAiPlayer = hasAi;
 
-        _roomRepository
-            .Setup(r => r.FindById(RoomId))
-            .Returns(room);
+        _roomRepository.Setup(r => r.FindById(RoomId)).Returns(room);
+        _roomRepository.Setup(r => r.ExistsById(RoomId)).Returns(true);
 
-        _roomRepository
-            .Setup(r => r.ExistsById(RoomId))
-            .Returns(true);
+        var players = Enumerable.Range(0, playerCount)
+            .Select(i => CreateUser(i, $"User{i}", roomId: RoomId, isReady: true))
+            .ToList();
 
-        var players = new List<UserModel>
+        _userRepository.Setup(r => r.FindByRoomId(RoomId)).Returns(players);
+
+        if (shouldThrow)
         {
-            CreateUser(UserId, UserName, roomId: RoomId, isReady: true)
-        };
-
-        _userRepository
-            .Setup(r => r.FindByRoomId(RoomId))
-            .Returns(players);
-
-        Assert.Throws<AppException>(() => _roomService.StartGame(RoomId, user));
-
-        _roomRepository.Verify(r => r.Save(It.IsAny<RoomModel>()), Times.Never);
+            Assert.Throws<AppException>(() => _roomService.StartGame(RoomId, user));
+            _roomRepository.Verify(r => r.Save(It.IsAny<RoomModel>()), Times.Never);
+        }
+        else
+        {
+            Assert.DoesNotThrow(() => _roomService.StartGame(RoomId, user));
+            _roomRepository.Verify(r => r.Save(It.IsAny<RoomModel>()), Times.Once);
+        }
     }
+
 
     [Test]
     public void whenStartGame_andSomePlayersNotReady_thenThrowAppException()
@@ -508,7 +515,6 @@ public class RoomServiceTest
         var players = new List<UserModel>
         {
             CreateUser(UserId, UserName, roomId: RoomId, isReady: true),
-            CreateUser(OtherUserId, OtherUserName, roomId: RoomId, isReady: true)
         };
 
         _userRepository

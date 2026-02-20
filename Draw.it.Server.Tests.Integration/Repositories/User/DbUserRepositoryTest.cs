@@ -39,7 +39,6 @@ public class DbUserRepositoryTest
 
         using (var migrateCtx = new ApplicationDbContext(_dbOptions))
         {
-            await migrateCtx.Database.EnsureCreatedAsync();
             await migrateCtx.Database.MigrateAsync();
         }
     }
