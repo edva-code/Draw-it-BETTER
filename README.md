@@ -82,4 +82,4 @@ First of all, check the [📚 Coding Conventions](https://github.com/daniel-sosn
 
 ## 👥 Team
 
-Team **null** – Vilnius University, Software Engineering course project.
+Team **C#epelinai** – Vilnius University, Software Engineering course project.
