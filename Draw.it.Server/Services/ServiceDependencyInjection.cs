@@ -13,6 +13,8 @@ public static class ServiceDependencyInjection
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IWordPoolService, WordPoolService>();
         services.AddScoped<IGameService, GameService>();
+        services.AddSingleton<IVoteKickService, VoteKickService>();
+        
         return services;
     }
 }

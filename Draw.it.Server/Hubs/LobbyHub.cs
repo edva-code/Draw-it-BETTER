@@ -17,11 +17,13 @@ namespace Draw.it.Server.Hubs;
 public class LobbyHub : BaseHub<LobbyHub>
 {
     private readonly IGameService _gameService;
+    private readonly IVoteKickService _voteKickService;
 
-    public LobbyHub(ILogger<LobbyHub> logger, IRoomService roomService, IUserService userService, IGameService gameService)
+    public LobbyHub(ILogger<LobbyHub> logger, IRoomService roomService, IUserService userService, IGameService gameService, IVoteKickService voteKickService)
         : base(logger, userService, roomService)
     {
         _gameService = gameService;
+        _voteKickService = voteKickService;
     }
 
     public override async Task OnConnectedAsync()
@@ -158,5 +160,43 @@ public class LobbyHub : BaseHub<LobbyHub>
         }
 
         await Clients.Group(roomId).SendAsync("ReceiveGameStart");
+    }
+
+    public async Task InitiateVoteKick(long targetId)
+    {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+
+        try
+        {
+            var room = _roomService.GetRoom(roomId);
+
+
+            if (_roomService.IsHost(roomId, user))
+            {
+
+                throw new AppException("Host should use direct kick, not vote kick.");
+            }
+
+            var session = _voteKickService.InitiateVote(room, user.Id, targetId);
+
+            await Clients.Group(roomId).SendAsync("ReceiveVoteKickStarted", new 
+            {
+                TargetUserId = session.TargetUserId,
+                InitiatorUserId = session.InitiatorUserId,
+                CreatedAt = session.CreatedAt
+            });
+            
+            _logger.LogInformation("Vote kick initiated in room {RoomId} by user {InitiatorId} against user {TargetId}", roomId, user.Id, targetId);
+        }
+        catch (AppException ex)
+        {
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Unexpected error initiating vote kick:\n{Ex}", ex);
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", "An unexpected error occurred while starting the vote.");
+        }
     }
 }
