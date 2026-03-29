@@ -17,7 +17,10 @@ namespace Draw.it.Server.Models.Room
 
         public bool HasMajority(int totalPlayersCount)
         {
-            return VotesFor.Count > totalPlayersCount / 2;
+            // If there are only 2 players, 1 vote is enough to vote kick the other.
+            // Otherwise, we need strictly more than half of the total players in the room.
+            int requiredVotes = totalPlayersCount == 2 ? 1 : (totalPlayersCount / 2) + 1;
+            return VotesFor.Count >= requiredVotes;
         }
     }
 }

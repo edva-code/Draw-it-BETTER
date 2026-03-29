@@ -10,11 +10,9 @@ namespace Draw.it.Server.Services.Room
         // Thread-safe dictionary for active sessions
         private readonly ConcurrentDictionary<string, VoteKickSession> _activeSessions = new();
         
-        // Cooldown implementation: room ID mapped to the cooldown expiration time
         private readonly ConcurrentDictionary<string, DateTime> _cooldowns = new();
         
-        // Settings: a standard length for cooldown, matching 1st Diagram description (30s)
-        private readonly TimeSpan _cooldownTime = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan _cooldownTime = TimeSpan.FromSeconds(15);
 
         public VoteKickSession InitiateVote(RoomModel room, long initiatorUserId, long targetUserId)
         {
@@ -98,6 +96,8 @@ namespace Draw.it.Server.Services.Room
                 lock (session)
                 {
                     session.IsCancelled = true;
+                    // Pašaliname sesiją iš karto, kad būtų galima iš karto pradėti naują, nebelaukiant 30s.
+                    _activeSessions.TryRemove(roomId, out _);
                     return true;
                 }
             }

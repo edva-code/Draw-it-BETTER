@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Security.Claims;
 using Draw.it.Server.Exceptions;
 using Draw.it.Server.Hubs;
@@ -217,10 +217,10 @@ public class LobbyHubTest
             s => s.IsHost(It.IsAny<string>(), It.IsAny<UserModel>()),
             Times.Never);
         _roomService.Verify(
-            s => s.LeaveRoom(It.IsAny<string>(), It.IsAny<UserModel>()),
+            s => s.LeaveRoom(It.IsAny<string>(), It.IsAny<UserModel>(), It.IsAny<bool>()),
             Times.Never);
         _roomService.Verify(
-            s => s.DeleteRoom(It.IsAny<string>(), It.IsAny<UserModel>()),
+            s => s.DeleteRoom(It.IsAny<string>(), It.IsAny<UserModel>(), It.IsAny<bool>()),
             Times.Never);
     }
 
@@ -233,7 +233,7 @@ public class LobbyHubTest
 
         await _hub.LeaveRoom();
 
-        _roomService.Verify(s => s.DeleteRoom(RoomId, _user), Times.Once);
+        _roomService.Verify(s => s.DeleteRoom(RoomId, _user, It.IsAny<bool>()), Times.Once);
 
         _groupClient.Verify(
             c => c.SendCoreAsync(
@@ -256,7 +256,7 @@ public class LobbyHubTest
 
         await _hub.LeaveRoom();
 
-        _roomService.Verify(s => s.LeaveRoom(RoomId, _user), Times.Once);
+        _roomService.Verify(s => s.LeaveRoom(RoomId, _user, It.IsAny<bool>()), Times.Once);
 
         _groupClient.Verify(
             c => c.SendCoreAsync(
@@ -274,7 +274,7 @@ public class LobbyHubTest
             .Returns(false);
 
         _roomService
-            .Setup(s => s.LeaveRoom(RoomId, _user))
+            .Setup(s => s.LeaveRoom(RoomId, _user, It.IsAny<bool>()))
             .Throws(new AppException("boom", HttpStatusCode.Conflict));
 
         Assert.ThrowsAsync<HubException>(async () => await _hub.LeaveRoom());
@@ -288,7 +288,7 @@ public class LobbyHubTest
             .Returns(false);
 
         _roomService
-            .Setup(s => s.LeaveRoom(RoomId, _user))
+            .Setup(s => s.LeaveRoom(RoomId, _user, It.IsAny<bool>()))
             .Throws(new Exception("oops"));
 
         Assert.ThrowsAsync<HubException>(async () => await _hub.LeaveRoom());

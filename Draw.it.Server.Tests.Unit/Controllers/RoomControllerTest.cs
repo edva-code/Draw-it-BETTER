@@ -87,7 +87,7 @@ public class RoomControllerTest
         var result = _roomController.LeaveRoom(RoomId);
 
         Assert.That(result, Is.InstanceOf<NoContentResult>());
-        _roomService.Verify(s => s.LeaveRoom(RoomId, user), Times.Once);
+        _roomService.Verify(s => s.LeaveRoom(RoomId, user, false), Times.Once);
     }
 
     [Test]
@@ -120,7 +120,7 @@ public class RoomControllerTest
         var result = _roomController.DeleteRoom(RoomId);
 
         Assert.That(result, Is.InstanceOf<NoContentResult>());
-        _roomService.Verify(s => s.DeleteRoom(RoomId, user), Times.Once);
+        _roomService.Verify(s => s.DeleteRoom(RoomId, user, false), Times.Once);
     }
 
     [Test]

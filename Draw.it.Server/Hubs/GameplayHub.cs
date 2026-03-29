@@ -320,6 +320,7 @@ public class GameplayHub : BaseHub<GameplayHub>
             int currentScore = totalScore + roundScore;
 
             return new PlayerStatusDto(
+                Id: user.Id,
                 Name: user.Name,
                 Score: currentScore,
                 IsDrawer: user.Id == drawerId,
