@@ -5,5 +5,6 @@ public record PlayerStatusDto(
     string Name,
     int Score,
     bool IsDrawer,
-    bool HasGuessed
+    bool HasGuessed,
+    bool IsHost
 );
