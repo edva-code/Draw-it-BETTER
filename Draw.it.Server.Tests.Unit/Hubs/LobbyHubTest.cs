@@ -23,6 +23,7 @@ public class LobbyHubTest
     private Mock<IRoomService> _roomService;
     private Mock<IUserService> _userService;
     private Mock<IGameService> _gameService;
+    private Mock<IVoteKickService> _voteKickService;
     private Mock<HubCallerContext> _context;
     private Mock<IHubCallerClients> _clients;
     private Mock<ISingleClientProxy> _callerClient;
@@ -39,6 +40,7 @@ public class LobbyHubTest
         _roomService = new Mock<IRoomService>();
         _userService = new Mock<IUserService>();
         _gameService = new Mock<IGameService>();
+        _voteKickService = new Mock<IVoteKickService>();
         _context = new Mock<HubCallerContext>();
         _clients = new Mock<IHubCallerClients>();
         _callerClient = new Mock<ISingleClientProxy>();
@@ -94,7 +96,8 @@ public class LobbyHubTest
             _logger.Object,
             _roomService.Object,
             _userService.Object,
-            _gameService.Object);
+            _gameService.Object,
+            _voteKickService.Object);
 
         _hub.SetContext(_context.Object);
         _hub.SetClients(_clients.Object);
@@ -108,8 +111,9 @@ public class LobbyHubTest
             ILogger<LobbyHub> logger,
             IRoomService roomService,
             IUserService userService,
-            IGameService gameService)
-            : base(logger, roomService, userService, gameService)
+            IGameService gameService,
+            IVoteKickService voteKickService)
+            : base(logger, roomService, userService, gameService, voteKickService)
         {
         }
 
