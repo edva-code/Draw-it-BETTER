@@ -7,6 +7,7 @@ using Draw.it.Server.Services.Room;
 using Draw.it.Server.Services.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Draw.it.Server.Hubs;
 
@@ -18,12 +19,14 @@ public class LobbyHub : BaseHub<LobbyHub>
 {
     private readonly IGameService _gameService;
     private readonly IVoteKickService _voteKickService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public LobbyHub(ILogger<LobbyHub> logger, IRoomService roomService, IUserService userService, IGameService gameService, IVoteKickService voteKickService)
+    public LobbyHub(ILogger<LobbyHub> logger, IRoomService roomService, IUserService userService, IGameService gameService, IVoteKickService voteKickService, IServiceScopeFactory scopeFactory)
         : base(logger, userService, roomService)
     {
         _gameService = gameService;
         _voteKickService = voteKickService;
+        _scopeFactory = scopeFactory;
     }
 
     public override async Task OnConnectedAsync()
@@ -265,45 +268,54 @@ public class LobbyHub : BaseHub<LobbyHub>
         // 30s laukimas, per kurį žaidėjai gali balsuoti. Po to tikriname rezultatus ir imamės veiksmų.
         await Task.Delay(TimeSpan.FromSeconds(30));
 
+        using var scope = _scopeFactory.CreateScope();
+        var voteKickService = scope.ServiceProvider.GetRequiredService<IVoteKickService>();
+        var roomService = scope.ServiceProvider.GetRequiredService<IRoomService>();
+        var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+        var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<LobbyHub>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<LobbyHub>>();
+
         try
         {
-            var session = _voteKickService.GetActiveSession(roomId);
-            if (session == null)
+            var session = voteKickService.GetActiveSession(roomId);
+            if (session == null || session.TargetUserId != targetUserId || session.IsCancelled)
             {
+                if (session != null && session.IsCancelled) 
+                {
+                    voteKickService.CleanUpSession(roomId);
+                }
                 return;
             }
 
-            if (session.TargetUserId != targetUserId)
-            {
-                return;
-            }
-
-            if (session.IsCancelled)
-            {
-                // valome sesija iš aktyvių sesijų, kad būtų galima pradėti naują kick procesą, jei bus norima
-                _voteKickService.CleanUpSession(roomId);
-                return;
-            }
-
-            var usersInRoom = _roomService.GetUsersInRoom(roomId).ToList();
+            var usersInRoom = roomService.GetUsersInRoom(roomId).ToList();
             bool hasMajority = session.HasMajority(usersInRoom.Count);
 
             if (hasMajority)
             {
-                await ExecuteKick(roomId, targetUserId);
+                var targetUser = userService.GetUser(targetUserId);
+                if (targetUser != null && targetUser.RoomId == roomId)
+                {
+                    roomService.LeaveRoom(roomId, targetUser);
+                    
+                    var players = roomService.GetUsersInRoom(roomId).Select(p => new PlayerDto(p, roomService.IsHost(roomId, p))).ToList();
+                    await hubContext.Clients.Group(roomId).SendAsync("ReceivePlayerList", players);
+
+                    await hubContext.Clients.User(targetUserId.ToString()).SendAsync("ReceiveKickedFromRoom");
+                    logger.LogInformation("User {TargetId} was kicked from room {RoomId}", targetUserId, roomId);
+                }
                 
-                await Clients.Group(roomId).SendAsync("ReceiveVoteKickSuccessful", targetUserId);
+                await hubContext.Clients.Group(roomId).SendAsync("ReceiveVoteKickSuccessful", targetUserId);
             }
             else
             {
-                await Clients.Group(roomId).SendAsync("ReceiveVoteKickFailed", "Pritrūko balsų vartotojui išmesti.");
+                await hubContext.Clients.Group(roomId).SendAsync("ReceiveVoteKickFailed", "Pritrūko balsų vartotojui išmesti.");
             }
 
-            _voteKickService.CleanUpSession(roomId);
+            voteKickService.CleanUpSession(roomId);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error resolving vote kick in room {RoomId}:\n{Ex}", roomId, ex);
+            logger.LogError("Error resolving vote kick in room {RoomId}:\n{Ex}", roomId, ex);
         }
     }
 

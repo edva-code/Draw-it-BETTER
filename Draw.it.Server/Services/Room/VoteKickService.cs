@@ -50,9 +50,6 @@ namespace Draw.it.Server.Services.Room
                 throw new AppException("Failed to initiate vote due to a concurrency conflict.");
             }
 
-            // (paskutinė balsavimo iniciavimo data + 30s)
-            _cooldowns[room.Id] = DateTime.UtcNow.Add(_cooldownTime);
-
             return session;
         }
 
@@ -125,6 +122,16 @@ namespace Draw.it.Server.Services.Room
         public void CleanUpSession(string roomId)
         {
             _activeSessions.TryRemove(roomId, out _);
+
+            _cooldowns[roomId] = DateTime.UtcNow.Add(_cooldownTime);
+
+            foreach (var kvp in _cooldowns)
+            {
+                if (kvp.Value < DateTime.UtcNow)
+                {
+                    _cooldowns.TryRemove(kvp.Key, out _);
+                }
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ using Draw.it.Server.Services.Room;
 using Draw.it.Server.Services.User;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace Draw.it.Server.Tests.Unit.Hubs;
@@ -24,6 +25,7 @@ public class LobbyHubTest
     private Mock<IUserService> _userService;
     private Mock<IGameService> _gameService;
     private Mock<IVoteKickService> _voteKickService;
+    private Mock<IServiceScopeFactory> _scopeFactory;
     private Mock<HubCallerContext> _context;
     private Mock<IHubCallerClients> _clients;
     private Mock<ISingleClientProxy> _callerClient;
@@ -41,6 +43,7 @@ public class LobbyHubTest
         _userService = new Mock<IUserService>();
         _gameService = new Mock<IGameService>();
         _voteKickService = new Mock<IVoteKickService>();
+        _scopeFactory = new Mock<IServiceScopeFactory>();
         _context = new Mock<HubCallerContext>();
         _clients = new Mock<IHubCallerClients>();
         _callerClient = new Mock<ISingleClientProxy>();
@@ -92,12 +95,31 @@ public class LobbyHubTest
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IVoteKickService))).Returns(_voteKickService.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IRoomService))).Returns(_roomService.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUserService))).Returns(_userService.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(ILogger<LobbyHub>))).Returns(_logger.Object);
+        
+        var mockHubContext = new Mock<IHubContext<LobbyHub>>();
+        var mockHubClients = new Mock<IHubClients>();
+        mockHubClients.Setup(c => c.Group(It.IsAny<string>())).Returns(_groupClient.Object);
+        mockHubClients.Setup(c => c.User(It.IsAny<string>())).Returns(_callerClient.Object);
+        mockHubContext.Setup(c => c.Clients).Returns(mockHubClients.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IHubContext<LobbyHub>))).Returns(mockHubContext.Object);
+
+        var serviceScopeMock = new Mock<IServiceScope>();
+        serviceScopeMock.Setup(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+
+        _scopeFactory.Setup(f => f.CreateScope()).Returns(serviceScopeMock.Object);
+
         _hub = new TestableLobbyHub(
             _logger.Object,
             _roomService.Object,
             _userService.Object,
             _gameService.Object,
-            _voteKickService.Object);
+            _voteKickService.Object,
+            _scopeFactory.Object);
 
         _hub.SetContext(_context.Object);
         _hub.SetClients(_clients.Object);
@@ -112,8 +134,9 @@ public class LobbyHubTest
             IRoomService roomService,
             IUserService userService,
             IGameService gameService,
-            IVoteKickService voteKickService)
-            : base(logger, roomService, userService, gameService, voteKickService)
+            IVoteKickService voteKickService,
+            IServiceScopeFactory scopeFactory)
+            : base(logger, roomService, userService, gameService, voteKickService, scopeFactory)
         {
         }
 
