@@ -171,11 +171,10 @@ public class LobbyHub : BaseHub<LobbyHub>
         {
             var room = _roomService.GetRoom(roomId);
 
-
             if (_roomService.IsHost(roomId, user))
             {
-
-                throw new AppException("Host should use direct kick, not vote kick.");
+                await DirectKickPlayer(targetId);
+                return;
             }
 
             var session = _voteKickService.InitiateVote(room, user.Id, targetId);
@@ -188,6 +187,9 @@ public class LobbyHub : BaseHub<LobbyHub>
             });
             
             _logger.LogInformation("Vote kick initiated in room {RoomId} by user {InitiatorId} against user {TargetId}", roomId, user.Id, targetId);
+            
+            // 30s laukimas, per kurį žaidėjai gali balsuoti. Po to tikriname rezultatus ir imamės veiksmų.
+            _ = ExecuteVoteKickResolutionAsync(roomId, targetId);
         }
         catch (AppException ex)
         {
@@ -197,6 +199,126 @@ public class LobbyHub : BaseHub<LobbyHub>
         {
             _logger.LogError("Unexpected error initiating vote kick:\n{Ex}", ex);
             await Clients.Caller.SendAsync("ReceiveVoteKickError", "An unexpected error occurred while starting the vote.");
+        }
+    }
+
+    public async Task DirectKickPlayer(long targetId)
+    {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+        
+        if (!_roomService.IsHost(roomId, user))
+        {
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", "Only the host can directly kick a player.");
+            return;
+        }
+
+        await ExecuteKick(roomId, targetId);
+    }
+
+    public async Task RegisterVote(long targetUserId, bool voteFor)
+    {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+
+        var (success, session) = _voteKickService.RegisterVote(roomId, user.Id, voteFor);
+        if (success && session != null)
+        {
+            await Clients.Group(roomId).SendAsync("ReceiveVoteRegistered", new 
+            {
+                TargetUserId = session.TargetUserId,
+                VotesFor = session.VotesFor.Count,
+                VotesAgainst = session.VotesAgainst.Count
+            });
+            _logger.LogInformation("User {UserId} registered vote {Vote} for kicking {TargetId} in room {RoomId}", user.Id, voteFor, targetUserId, roomId);
+        }
+        else if (session == null || session.IsCancelled)
+        {
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", "Vote session not found or cancelled.");
+        }
+    }
+
+    public async Task CancelVoteKick()
+    {
+        var user = await ResolveUserAsync();
+        var roomId = user.RoomId!;
+
+        if (!_roomService.IsHost(roomId, user))
+        {
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", "Only the host can cancel a vote kick.");
+            return;
+        }
+
+        if (_voteKickService.CancelVote(roomId, user.Id))
+        {
+            await Clients.Group(roomId).SendAsync("ReceiveVoteKickCancelled", "The host cancelled the vote kick.");
+            _logger.LogInformation("Host {HostId} cancelled vote kick in room {RoomId}", user.Id, roomId);
+        }
+        else
+        {
+            await Clients.Caller.SendAsync("ReceiveVoteKickError", "No active vote kick session found.");
+        }
+    }
+
+    private async Task ExecuteVoteKickResolutionAsync(string roomId, long targetUserId)
+    {
+        // 30s laukimas, per kurį žaidėjai gali balsuoti. Po to tikriname rezultatus ir imamės veiksmų.
+        await Task.Delay(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            var session = _voteKickService.GetActiveSession(roomId);
+            if (session == null)
+            {
+                return;
+            }
+
+            if (session.TargetUserId != targetUserId)
+            {
+                return;
+            }
+
+            if (session.IsCancelled)
+            {
+                // valome sesija iš aktyvių sesijų, kad būtų galima pradėti naują kick procesą, jei bus norima
+                _voteKickService.CleanUpSession(roomId);
+                return;
+            }
+
+            var usersInRoom = _roomService.GetUsersInRoom(roomId).ToList();
+            bool hasMajority = session.HasMajority(usersInRoom.Count);
+
+            if (hasMajority)
+            {
+                await ExecuteKick(roomId, targetUserId);
+                
+                await Clients.Group(roomId).SendAsync("ReceiveVoteKickSuccessful", targetUserId);
+            }
+            else
+            {
+                await Clients.Group(roomId).SendAsync("ReceiveVoteKickFailed", "Pritrūko balsų vartotojui išmesti.");
+            }
+
+            _voteKickService.CleanUpSession(roomId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error resolving vote kick in room {RoomId}:\n{Ex}", roomId, ex);
+        }
+    }
+
+    private async Task ExecuteKick(string roomId, long targetId)
+    {
+        var targetUser = _userService.GetUser(targetId);
+        if (targetUser != null && targetUser.RoomId == roomId)
+        {
+            _roomService.LeaveRoom(roomId, targetUser);
+            
+            await SendPlayerListUpdate(roomId);
+
+            await Clients.User(targetId.ToString()).SendAsync("ReceiveKickedFromRoom");
+            
+            _logger.LogInformation("User {TargetId} was kicked from room {RoomId}", targetId, roomId);
         }
     }
 }
