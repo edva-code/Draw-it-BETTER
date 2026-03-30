@@ -320,10 +320,12 @@ public class GameplayHub : BaseHub<GameplayHub>
             int currentScore = totalScore + roundScore;
 
             return new PlayerStatusDto(
+                Id: user.Id,
                 Name: user.Name,
                 Score: currentScore,
                 IsDrawer: user.Id == drawerId,
-                HasGuessed: game.GuessedPlayersIds.Contains(user.Id)
+                HasGuessed: game.GuessedPlayersIds.Contains(user.Id),
+                IsHost: _roomService.IsHost(roomId, user)
             );
         }).OrderByDescending(p => p.Score).ToList();
 

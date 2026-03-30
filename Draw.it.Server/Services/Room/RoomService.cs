@@ -75,7 +75,7 @@ public class RoomService : IRoomService
     /// <summary>
     /// Delete room (host only)
     /// </summary>
-    public void DeleteRoom(string roomId, UserModel user)
+    public void DeleteRoom(string roomId, UserModel user, bool force = false)
     {
         if (user.RoomId != roomId)
         {
@@ -87,7 +87,7 @@ public class RoomService : IRoomService
         {
             throw new AppException("Only the host can delete the room.", HttpStatusCode.Forbidden);
         }
-        if (room.Status == RoomStatus.InGame)
+        if (room.Status == RoomStatus.InGame && !force)
         {
             throw new AppException("Cannot delete room while the game is in progress.", HttpStatusCode.Conflict);
         }
@@ -158,7 +158,7 @@ public class RoomService : IRoomService
     /// <summary>
     /// Remove a player from a room
     /// </summary>
-    public void LeaveRoom(string roomId, UserModel user)
+    public void LeaveRoom(string roomId, UserModel user, bool force = false)
     {
         if (user.RoomId != roomId)
         {
@@ -166,11 +166,11 @@ public class RoomService : IRoomService
         }
 
         var room = GetRoom(roomId);
-        if (room.HostId == user.Id)
+        if (room.HostId == user.Id && !force)
         {
             throw new AppException("Host cannot leave the room. Consider deleting the room instead.", HttpStatusCode.Forbidden);
         }
-        if (room.Status == RoomStatus.InGame)
+        if (room.Status == RoomStatus.InGame && !force)
         {
             throw new AppException("Cannot leave room while the game is in progress.", HttpStatusCode.Conflict);
         }
