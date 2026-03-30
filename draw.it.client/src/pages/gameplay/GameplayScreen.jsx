@@ -15,6 +15,7 @@ export default function GameplayScreen() {
     const gameplayConnection = useContext(GameplayHubContext);
     const lobbyConnection = useContext(LobbyHubContext);
     const { roomId } = useParams();
+    const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [scoreModalOpen, setScoreModalOpen] = useState(false);
     const [scoreModalTitle, setScoreModalTitle] = useState("");
@@ -82,6 +83,15 @@ export default function GameplayScreen() {
             alert(message);
         });
 
+        lobbyConnection.on("ReceiveKickedFromRoom", () => {
+            alert("You have been kicked from the room.");
+            navigate("/");
+        });
+
+        lobbyConnection.on("ReceivePlayerList", (updatedUsers) => {
+            setPlayerStatuses(prev => prev.filter(ps => updatedUsers.some(u => u.id === ps.id)));
+        });
+
         return () => {
             lobbyConnection.off("ReceiveVoteKickStarted");
             lobbyConnection.off("ReceiveVoteRegistered");
@@ -89,6 +99,8 @@ export default function GameplayScreen() {
             lobbyConnection.off("ReceiveVoteKickFailed");
             lobbyConnection.off("ReceiveVoteKickCancelled");
             lobbyConnection.off("ReceiveVoteKickError");
+            lobbyConnection.off("ReceiveKickedFromRoom");
+            lobbyConnection.off("ReceivePlayerList");
         };
     }, [lobbyConnection]);
 
@@ -194,6 +206,12 @@ export default function GameplayScreen() {
         return target ? target.name : "Unknown User";
     };
 
+    const getInitiatorName = () => {
+        if (!voteKickSession) return "";
+        const initiator = playerStatuses.find(p => p.id === voteKickSession.initiatorUserId);
+        return initiator ? initiator.name : "Unknown User";
+    };
+
     const isDrawer = playerStatuses.some(
         (player) => player.isDrawer && player.name === myName
     );
@@ -230,12 +248,13 @@ export default function GameplayScreen() {
             />
 
             {voteKickSession && (!hasVoted && voteKickSession.initiatorUserId !== (playerStatuses.find(p => p.name === myName)?.id) || playerStatuses.find(p => p.name === myName)?.isHost) && (
-                <div style={{ position: 'absolute', top: '1rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--color-surface)', border: '2px solid #ef4444', borderRadius: '0.5rem', padding: '1rem', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', zIndex: 50, color: 'var(--color-text)', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '300px' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ef4444', marginBottom: '0.5rem' }}>Vote Kick</h3>
-                    <p style={{ marginBottom: '1rem' }}>Kick <span style={{ fontWeight: 'bold' }}>{getTargetName()}</span> from the room?</p>
-                    <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '600' }}>
-                        <span style={{ color: '#4ade80' }}>YES: {voteKickSession.votesFor}</span>
-                        <span style={{ color: '#ef4444' }}>NO: {voteKickSession.votesAgainst}</span>
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 border-2 border-red-500 rounded-lg p-4 shadow-2xl z-50 text-white flex flex-col items-center min-w-[300px]">
+                    <h3 className="text-xl font-bold text-red-500 mb-2">Vote Kick</h3>
+                    <div className="text-xs text-gray-400 mb-1">Started by: {getInitiatorName()}</div>
+                    <p className="mb-4">Kick <span className="font-bold">{getTargetName()}</span> from the room?</p>
+                    <div className="flex w-full justify-between mb-3 text-sm font-semibold">
+                        <span className="text-green-500">YES: {voteKickSession.votesFor}</span>
+                        <span className="text-red-500">NO: {voteKickSession.votesAgainst}</span>
                     </div>
                     {playerStatuses.find(p => p.name === myName)?.isHost && (
                         <button

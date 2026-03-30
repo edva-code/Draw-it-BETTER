@@ -19,6 +19,7 @@ namespace Draw.it.Server.Models.Room
         {
             // If there are only 2 players, 1 vote is enough to vote kick the other.
             // Otherwise, we need strictly more than half of the total players in the room.
+            // now that i thought about it, it doesnt even matter cuz if two players, one will be the host and cant be kicked, so the vote will always be successful, but lets keep it like this just in case we want to change the rules later
             int requiredVotes = totalPlayersCount == 2 ? 1 : (totalPlayersCount / 2) + 1;
             return VotesFor.Count >= requiredVotes;
         }
