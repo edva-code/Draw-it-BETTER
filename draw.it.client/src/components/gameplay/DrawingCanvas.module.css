@@ -1,45 +1,77 @@
-﻿/* Eraser Button */
-.toolButton {
-    @apply
-    ml-4 px-4 py-2 rounded-lg font-medium transition-colors
-    duration-200 flex items-center shadow-md;
+﻿.toolButton {
+    margin-left: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: colors 0.2s;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .toolButtonActive {
-    /* Inherit base styles, then override */
     composes: toolButton;
-    @apply bg-red-500 text-white hover:bg-red-600;
+    background-color: #ef4444;
+    color: white;
+}
+
+.toolButtonActive:hover {
+    background-color: #dc2626;
 }
 
 .toolButtonInactive {
     composes: toolButton;
-    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
 }
 
-/* Clear Button */
+.toolButtonInactive:hover {
+    background-color: var(--color-border);
+}
 
 .clearButton {
-    @apply px-4 py-2 rounded-lg bg-gray-200 text-gray-800
-    font-medium hover:bg-gray-300 transition-colors
-    duration-200;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
+    font-weight: 500;
+    transition: background-color 0.2s;
+    border: none;
+    cursor: pointer;
 }
 
-/* Color Button */
+.clearButton:hover {
+    background-color: var(--color-border);
+}
 
 .colorButton {
-    @apply w-8 h-8 rounded-full border-2 border-transparent 
-    hover:border-black transition-all duration-200 focus:outline-none
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
 }
 
-/* Brush Slider */
+.colorButton:hover {
+    border-color: var(--color-text);
+}
+
+.colorButton:focus {
+    outline: none;
+}
+
 .brushLabel {
-    @apply text-gray-600;
+    color: var(--color-text-muted);
 }
 
 .brushValueDisplay {
-    @apply text-gray-600 w-6 text-right;
+    color: var(--color-text-muted);
+    width: 1.5rem;
+    text-align: right;
 }
 
 .brushSlider {
-    @apply w-32 accent-gray-500;
+    width: 8rem;
+    accent-color: var(--color-primary);
 }
