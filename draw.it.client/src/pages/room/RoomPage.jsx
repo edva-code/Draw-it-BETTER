@@ -76,11 +76,17 @@ export default function RoomPage() {
             navigate(`/gameplay/${roomId}`);
         });
 
+        lobbyConnection.on("ReceiveKickedFromRoom", () => {
+            alert("You have been kicked from the room.");
+            navigate("/");
+        });
+
         return () => {
             lobbyConnection.off("ReceiveUpdateSettings");
             lobbyConnection.off("ReceiveRoomDeleted");
             lobbyConnection.off("ReceivePlayerList");
             lobbyConnection.off("ReceiveGameStart");
+            lobbyConnection.off("ReceiveKickedFromRoom");
         }
     }, [lobbyConnection, roomId]);
 

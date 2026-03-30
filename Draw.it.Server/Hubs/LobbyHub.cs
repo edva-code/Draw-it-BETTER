@@ -359,6 +359,9 @@ public class LobbyHub : BaseHub<LobbyHub>
             _roomService.LeaveRoom(roomId, targetUser, force: true);
             await Clients.User(targetId.ToString()).SendAsync("ReceiveKickedFromRoom");
             
+            var players = _roomService.GetUsersInRoom(roomId).Select(p => new PlayerDto(p, _roomService.IsHost(roomId, p))).ToList();
+            await Clients.Group(roomId).SendAsync("ReceivePlayerList", players);
+
             _logger.LogInformation("User {TargetId} was kicked from room {RoomId}", targetId, roomId);
         }
     }
