@@ -1,13 +1,13 @@
-/* Game Room Lobby Styling */
 .game-room {
   min-height: 80vh;
-  background: #1a1a1a; /* Dark background */
-  color: white;
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .game-room-inner {
@@ -21,14 +21,14 @@
   font-size: 2rem;
   font-weight: bold;
   margin: 0 0 0.5rem 0;
-  color: white;
+  color: var(--color-text);
   letter-spacing: 2px;
 }
 
 .room-id {
   text-align: center;
   font-size: 1.2rem;
-  color: #cbd5e1;
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
   font-weight: 500;
 }
@@ -36,10 +36,9 @@
 .game-room-content {
   display: flex;
   gap: 1.5rem;
-  align-items: flex-start;  
+  align-items: flex-start;
 }
 
-/* Left Column - Players Section */
 .players-section {
   flex: 1;
   display: flex;
@@ -51,12 +50,12 @@
   font-size: 1.2rem;
   font-weight: bold;
   margin: 0;
-  color: white;
+  color: var(--color-text);
   text-align: left;
 }
 
 .player-count {
-  background: #ff6b35; /* Orange background */
+  background: var(--color-primary);
   color: white;
   padding: 0.8rem 1.2rem;
   border-radius: 12px;
@@ -73,19 +72,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  }
+}
 
 .player-item {
-  color: white;
+  color: var(--color-text);
   font-size: 1rem;
   padding: 0.3rem 0;
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .player-item.ready {
-    background-color: #384d38; 
+    background-color: rgba(74, 222, 128, 0.15);
     border-radius: 6px;
     padding: 0.5rem;
 }
@@ -116,13 +115,13 @@
     transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
-    background: #ff6b35;
+    background: var(--color-primary);
     color: white;
 }
 
 .action-buttons button:hover,
 .leave-button-container button:hover {
-    background: #e55a2b; 
+    background: var(--color-primary-dark);
     transform: translateY(-2px);
 }
 
@@ -135,15 +134,13 @@
     background-color: #2fb35e;
 }
 
-/* Divider */
 .divider {
   width: 2px;
-  background: #333333; /* Dark gray divider */
+  background: var(--color-border);
   min-height: 400px;
   flex-shrink: 0;
 }
 
-/* Right Column - Game Details */
 .game-details-section {
   flex: 1;
   display: flex;
@@ -158,19 +155,19 @@
 }
 
 .setting-label {
-  color: white;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .setting-value {
-  color: white;
+  color: var(--color-text);
   font-size: 1rem;
   font-weight: 600;
 }
 
 .category-value {
-  color: #4ade80; /* Bright green for category */
+  color: #4ade80;
   font-weight: bold;
 }
 
@@ -182,7 +179,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 0.6rem 1.2rem;
-  background: #ff6b35; /* Orange background */
+  background: var(--color-primary);
   border-radius: 12px;
   transition: all 0.2s ease;
   align-self: center;
@@ -191,13 +188,12 @@
 }
 
 .back-link:hover {
-  background: #e55a2b; /* Darker orange on hover */
+  background: var(--color-primary-dark);
   text-decoration: none;
   transform: translateY(-2px);
   color: white;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .game-room-content {
     flex-direction: column;

@@ -80,7 +80,10 @@ export default function TimerComponent() {
     }, [initialDurationMs, serverOffset, gameplayConnection]);
 
     return (
-        <div className="absolute top-4 right-6 bg-black z-10 px-4 py-2 rounded-lg shadow-md text-xl font-semibold text-white">
+        <div
+            className="absolute top-4 right-6 z-10 px-4 py-2 rounded-lg shadow-md text-xl font-semibold"
+            style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+        >
             {timeDisplay}
         </div>
     );

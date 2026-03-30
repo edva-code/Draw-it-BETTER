@@ -6,12 +6,13 @@ import HostScreen from "@/pages/host/HostScreen.jsx";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { LobbyHubProvider } from "@/utils/LobbyHubProvider.jsx";
 import { GameplayHubProvider } from "@/utils/GameplayHubProvider.jsx";
-
+import { ThemeProvider } from "@/context/ThemeContext.jsx";
+import DarkModeToggle from "@/components/theme/DarkModeToggle.jsx";
 
 function LobbyLayout() {
     return (
         <LobbyHubProvider>
-            <Outlet /> {/* nested routes render here */}
+            <Outlet />
         </LobbyHubProvider>
     );
 }
@@ -26,18 +27,21 @@ function GameplayLayout() {
 
 function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Index />} />
-                <Route element={<LobbyLayout />}>
-                    <Route path="/room/:roomId" element={<RoomPage />} />
-                    <Route path="/host/:roomId" element={<HostScreen />} />
-                    <Route element={<GameplayLayout />}>
-                        <Route path="/gameplay/:roomId" element={<GameplayScreen />} />
+        <ThemeProvider>
+            <BrowserRouter>
+                <DarkModeToggle />
+                <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route element={<LobbyLayout />}>
+                        <Route path="/room/:roomId" element={<RoomPage />} />
+                        <Route path="/host/:roomId" element={<HostScreen />} />
+                        <Route element={<GameplayLayout />}>
+                            <Route path="/gameplay/:roomId" element={<GameplayScreen />} />
+                        </Route>
                     </Route>
-                </Route>
-            </Routes>
-        </BrowserRouter>
+                </Routes>
+            </BrowserRouter>
+        </ThemeProvider>
     )
 }
 

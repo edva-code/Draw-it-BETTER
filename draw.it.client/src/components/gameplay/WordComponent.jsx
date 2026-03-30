@@ -1,15 +1,20 @@
 ﻿import React from "react";
+
 export default function WordComponent({ word }) {
-    
     return (
-        //{/* Word to draw/guess */}
         <div className="flex items-center justify-center mb-2">
             <div className="text-center">
-                <div className="text-2xl font-bold text-gray-800 bg-white px-4 py-1 rounded-lg border-2 border-orange-200 shadow-sm">
+                <div
+                    className="text-2xl font-bold px-4 py-1 rounded-lg shadow-sm"
+                    style={{
+                        color: 'var(--color-text)',
+                        backgroundColor: 'var(--color-surface)',
+                        border: '2px solid var(--color-primary)'
+                    }}
+                >
                     {word || "Hidden Word"}
                 </div>
             </div>
         </div>
-    );
-};
-
+    )
+}

@@ -217,33 +217,25 @@ export default function GameplayScreen() {
     );
     
     return (
-        // FIX 1: Use w-screen h-screen and overflow-hidden to contain the layout.
-        <div className="flex w-screen h-[90vh] bg-secondary p-4 overflow-hidden">
+        <div style={{ display: 'flex', width: '100vw', height: '90vh', backgroundColor: 'var(--color-bg)', padding: '1rem', overflow: 'hidden', boxSizing: 'border-box' }}>
 
-            {/* Canvas Wrapper: w-3/4 and h-full remains correct */}
-            <div className="relative w-3/4 h-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col mr-4">
+            <div style={{ position: 'relative', width: '75%', height: '100%', backgroundColor: 'var(--color-surface)', padding: '1.5rem', borderRadius: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', marginRight: '1rem', border: '1px solid var(--color-border)' }}>
                 <RoundComponent currentRound={currentRound} totalRounds={totalRounds} />
                 <TimerComponent />
                 <DrawingCanvas isDrawer={isDrawer} word={currentWord}/>
             </div>
 
-            {/* FIX 2: Explicitly wrap ChatComponent to control its w-1/4 and h-full layout */}
-            <div className="w-1/4 h-[90vh] flex flex-col">
-
-                {/* 1. NAUJAS KOMPONENTAS: PlayerStatusList */}
-                <PlayerStatusList 
-                    players={playerStatuses} 
+            <div style={{ width: '25%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+                <PlayerStatusList
+                    players={playerStatuses}
                     currentUserName={myName}
                     onKickPlayer={handleKickPlayer}
                 />
-
-                {/* 2. ChatComponent (naudojame flex-grow, kad užpildytų likusią vietą) */}
-                <div className="flex-grow">
+                <div style={{ flexGrow: 1 }}>
                     <ChatComponent
                         messages={messages}
                         onSendMessage={handleSendMessage}
-                        // Dabar h-full nustatomas iš flex-grow
-                        className="h-full bg-gray-800 rounded-xl shadow-lg"
+                        className="h-full rounded-xl shadow-lg"
                     />
                 </div>
             </div>
@@ -255,7 +247,6 @@ export default function GameplayScreen() {
                 title={scoreModalTitle}
             />
 
-            {/* Simple Vote Kick Overlay: Show if you haven't voted (or if you're NOT the initiator) OR you are the host */}
             {voteKickSession && (!hasVoted && voteKickSession.initiatorUserId !== (playerStatuses.find(p => p.name === myName)?.id) || playerStatuses.find(p => p.name === myName)?.isHost) && (
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 border-2 border-red-500 rounded-lg p-4 shadow-2xl z-50 text-white flex flex-col items-center min-w-[300px]">
                     <h3 className="text-xl font-bold text-red-500 mb-2">Vote Kick</h3>
@@ -265,29 +256,27 @@ export default function GameplayScreen() {
                         <span className="text-green-500">YES: {voteKickSession.votesFor}</span>
                         <span className="text-red-500">NO: {voteKickSession.votesAgainst}</span>
                     </div>
-                    {/* Show Cancel button if I am the host */}
                     {playerStatuses.find(p => p.name === myName)?.isHost && (
                         <button
                             onClick={handleCancelVoteKick}
-                            className="bg-gray-600 hover:bg-gray-500 px-4 py-1 text-xs rounded text-white font-bold transition-colors mb-3"
+                            style={{ backgroundColor: 'var(--color-surface-hover)', padding: '0.25rem 1rem', fontSize: '0.75rem', borderRadius: '0.25rem', color: 'var(--color-text)', fontWeight: 'bold', marginBottom: '0.75rem', border: 'none', cursor: 'pointer' }}
                         >
                             CANCEL
                         </button>
                     )}
-                    {/* Only show vote buttons if we aren't the target, aren't the initiator, and haven't voted */}
-                    {voteKickSession.targetUserId !== (playerStatuses.find(p => p.name === myName)?.id) && 
-                     voteKickSession.initiatorUserId !== (playerStatuses.find(p => p.name === myName)?.id) && 
+                    {voteKickSession.targetUserId !== (playerStatuses.find(p => p.name === myName)?.id) &&
+                     voteKickSession.initiatorUserId !== (playerStatuses.find(p => p.name === myName)?.id) &&
                      !hasVoted && (
-                        <div className="flex gap-4">
-                            <button 
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
                                 onClick={() => handleVote(true)}
-                                className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded text-white font-bold transition-colors"
+                                style={{ backgroundColor: '#16a34a', padding: '0.5rem 1.5rem', borderRadius: '0.25rem', color: 'white', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
                             >
                                 YES
                             </button>
-                            <button 
+                            <button
                                 onClick={() => handleVote(false)}
-                                className="bg-red-600 hover:bg-red-500 px-6 py-2 rounded text-white font-bold transition-colors"
+                                style={{ backgroundColor: '#dc2626', padding: '0.5rem 1.5rem', borderRadius: '0.25rem', color: 'white', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
                             >
                                 NO
                             </button>
@@ -296,5 +285,5 @@ export default function GameplayScreen() {
                 </div>
             )}
         </div>
-    );
+    )
 }

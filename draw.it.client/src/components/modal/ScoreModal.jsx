@@ -8,18 +8,24 @@ export default function ScoreModal({ isOpen, onClose, scores = [], title = "Scor
                 <ul className="space-y-2">
                     {scores && scores.length > 0 ? (
                         scores.map((s, i) => (
-                            <li key={i} className="flex justify-between items-center bg-white/10 p-3 rounded">
+                            <li key={i}
+                                className="flex justify-between items-center p-3 rounded"
+                                style={{ backgroundColor: 'var(--color-player-card)' }}
+                            >
                                 <span className="truncate">{s.name}</span>
                                 <span className="font-semibold">{s.points}</span>
                             </li>
                         ))
                     ) : (
-                        <li className="text-sm text-gray-300">No scores available</li>
+                        <li style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                            No scores available
+                        </li>
                     )}
                 </ul>
                 <div className="mt-6 text-right">
                     <button
-                        className="px-4 py-2 rounded bg-primary text-white"
+                        className="px-4 py-2 rounded"
+                        style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
                         onClick={onClose}
                     >
                         Close
@@ -27,5 +33,5 @@ export default function ScoreModal({ isOpen, onClose, scores = [], title = "Scor
                 </div>
             </div>
         </Modal>
-    );
+    )
 }

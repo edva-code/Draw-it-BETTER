@@ -1,9 +1,19 @@
 ﻿.input {
     padding: 0.625em 0.75em;
-    border: 0.1875em solid;
+    border: 0.1875em solid var(--color-input-border);
     border-radius: 0.625em;
     font-size: 1em;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    color: black;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    color: var(--color-text);
+    background-color: var(--color-input-bg);
+}
+
+.input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(251, 112, 0, 0.25);
 }
