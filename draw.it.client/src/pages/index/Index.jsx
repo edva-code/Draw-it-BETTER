@@ -6,6 +6,7 @@ import colors from "@/constants/colors.js";
 import Input from "@/components/input/Input.jsx"
 import Button from "@/components/button/Button.jsx";
 import Modal from "@/components/modal/Modal.jsx";
+import AuthPlaceholder from "@/components/AuthPlaceholder.jsx";
 
 function Index() {
     const [nameInputText, setNameInputText] = useState("");
@@ -88,6 +89,8 @@ function Index() {
     
     return (
         <div className="index-container">
+            <AuthPlaceholder />
+            
             <h1 id="app-title">
                 Draw <span className="highlight" style={{ backgroundColor: colors.primary, color: colors.secondaryDark }}>.it</span>
             </h1>
