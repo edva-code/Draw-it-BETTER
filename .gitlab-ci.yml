@@ -1,0 +1,108 @@
+stages:
+  - lint
+  - test
+  - docker
+  - deploy
+
+variables:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "true"
+
+frontend_lint:
+  stage: lint
+  image: node:20
+  rules:
+    - changes:
+        - draw.it.client/**/*
+        - .gitlab-ci.yml
+  before_script:
+    - cd draw.it.client
+    - npm ci
+  script:
+    - npm run lint
+
+frontend_test:
+  stage: test
+  image: node:20
+  rules:
+    - changes:
+        - draw.it.client/**/*
+        - .gitlab-ci.yml
+  before_script:
+    - cd draw.it.client
+    - npm ci
+  script:
+    - npm test -- --coverage
+  artifacts:
+    when: always
+    paths:
+      - draw.it.client/coverage/
+    expire_in: 1 week
+
+backend_lint:
+  stage: lint
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  rules:
+    - changes:
+        - Draw.it.Server/**/*
+        - Draw.it.Server.Tests.Unit/**/*
+        - Draw.it.Server.Tests.Integration/**/*
+        - .gitlab-ci.yml
+  script:
+    - dotnet restore
+    - dotnet format Draw.it.Server/Draw.it.Server.csproj --verify-no-changes
+    - dotnet format Draw.it.Server.Tests.Unit/Draw.it.Server.Tests.Unit.csproj --verify-no-changes
+    - dotnet format Draw.it.Server.Tests.Integration/Draw.it.Server.Tests.Integration.csproj --verify-no-changes
+
+backend_unit_tests:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  rules:
+    - changes:
+        - Draw.it.Server/**/*
+        - Draw.it.Server.Tests.Unit/**/*
+        - .gitlab-ci.yml
+  script:
+    - dotnet restore
+    - dotnet test Draw.it.Server.Tests.Unit/Draw.it.Server.Tests.Unit.csproj --collect:"XPlat Code Coverage"
+  artifacts:
+    when: always
+    paths:
+      - Draw.it.Server.Tests.Unit/TestResults/
+    expire_in: 1 week
+
+backend_integration_tests:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  rules:
+    - changes:
+        - Draw.it.Server/**/*
+        - Draw.it.Server.Tests.Integration/**/*
+        - .gitlab-ci.yml
+  script:
+    - dotnet restore
+    - dotnet test Draw.it.Server.Tests.Integration/Draw.it.Server.Tests.Integration.csproj
+  artifacts:
+    when: always
+    paths:
+      - Draw.it.Server.Tests.Integration/TestResults/
+    expire_in: 1 week
+
+docker_build:
+  stage: docker
+  image: docker:24
+  services:
+    - docker:24-dind
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - docker build -t drawit-app .
+
+deploy_manual:
+  stage: deploy
+  image: alpine:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  when: manual
+  script:
+    - echo "Manual deploy step - ready for future automation"
