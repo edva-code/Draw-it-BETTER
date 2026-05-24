@@ -4,8 +4,8 @@
     left: -350px;
     width: 320px;
     height: 100vh;
-    border-left: 2px solid;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+    border-right: 2px solid;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
     transition: left 0.3s ease-in-out;
     z-index: 1000;
     display: flex;
