@@ -5,6 +5,8 @@ namespace Draw.it.Server.Services.User;
 public interface IUserService
 {
     UserModel CreateUser(string name);
+    UserModel RegisterUser(string name, string email, string password);
+    UserModel LoginUser(string email, string password);
     void DeleteUser(long userId);
     UserModel GetUser(long userId);
     void SetRoom(long userId, string? roomId);

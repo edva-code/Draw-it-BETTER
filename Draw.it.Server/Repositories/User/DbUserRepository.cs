@@ -73,6 +73,11 @@ public class DbUserRepository(ApplicationDbContext context) : IUserRepository
     {
         return context.Users.First(u => u.RoomId == roomId && u.IsAi);
     }
+
+    public UserModel? FindByEmail(string email)
+    {
+        return context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
+    }
 }
 
 

@@ -58,6 +58,24 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasColumnName("name")
                 .HasMaxLength(128);
 
+            entity.Property(u => u.Email)
+                .HasColumnName("email")
+                .HasMaxLength(255)
+                .IsRequired(false);
+
+            entity.Property(u => u.PasswordHash)
+                .HasColumnName("password_hash")
+                .HasMaxLength(255)
+                .IsRequired(false);
+
+            entity.Property(u => u.TotalScore)
+                .HasColumnName("total_score")
+                .HasDefaultValue(0);
+
+            entity.Ignore(u => u.IsGuest);
+
+            entity.HasIndex(u => u.Email).IsUnique();
+
             entity.Property(u => u.RoomId)
                 .HasColumnName("room_id")
                 .HasMaxLength(16)

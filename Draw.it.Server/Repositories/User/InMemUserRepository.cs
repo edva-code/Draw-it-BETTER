@@ -53,4 +53,9 @@ public class InMemUserRepository : IUserRepository
     {
         return _users.Values.First(u => u.RoomId == roomId && u.IsAi);
     }
+
+    public UserModel? FindByEmail(string email)
+    {
+        return _users.Values.FirstOrDefault(u => u.Email == email);
+    }
 }

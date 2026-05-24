@@ -38,6 +38,58 @@ public class UserService : IUserService
     }
 
     /// <summary>
+    /// Register a new account
+    /// </summary>
+    public UserModel RegisterUser(string name, string email, string password)
+    {
+        name = name.Trim();
+        email = email.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        {
+            throw new AppException("Name, email and password are required", System.Net.HttpStatusCode.BadRequest);
+        }
+
+        if (_userRepository.FindByEmail(email) != null)
+        {
+            throw new AppException("Email is already in use", System.Net.HttpStatusCode.Conflict);
+        }
+
+        var user = new UserModel
+        {
+            Id = _userRepository.GetNextId(),
+            Name = name,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, 11)
+        };
+
+        _userRepository.Save(user);
+        _logger.LogInformation("User registered with email={email}", email);
+        return user;
+    }
+
+    /// <summary>
+    /// Login to an account
+    /// </summary>
+    public UserModel LoginUser(string email, string password)
+    {
+        email = email.Trim().ToLowerInvariant();
+        
+        var user = _userRepository.FindByEmail(email);
+        if (user == null || user.PasswordHash == null)
+        {
+            throw new AppException("Invalid email or password", System.Net.HttpStatusCode.Unauthorized);
+        }
+
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(password, user.PasswordHash))
+        {
+            throw new AppException("Invalid email or password", System.Net.HttpStatusCode.Unauthorized);
+        }
+
+        return user;
+    }
+
+    /// <summary>
     /// Delete user
     /// </summary>
     public void DeleteUser(long userId)

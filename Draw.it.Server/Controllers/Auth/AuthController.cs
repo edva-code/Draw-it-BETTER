@@ -21,8 +21,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new user and sets claims in cookie
-    /// * For now just creates a new user every time
+    /// Creates a new temporary guest user and sets claims in cookie
     /// </summary>
     [HttpPost("join")]
     [ProducesResponseType(typeof(AuthMeResponseDto), StatusCodes.Status201Created)]
@@ -30,13 +29,39 @@ public class AuthController : ControllerBase
     {
         // For simplicity, we create a new user every time. It's ok, since we don't store user data permanently.
         var user = _userService.CreateUser(request.Name);
+        await SignInUser(user);
+        return Created("api/v1/auth/me", new AuthMeResponseDto(user));
+    }
 
-        // Create identity with userId as claim
+    /// <summary>
+    /// Registers a new account
+    /// </summary>
+    [HttpPost("register")]
+    [ProducesResponseType(typeof(AuthMeResponseDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Register([FromBody] AuthRegisterRequestDto request)
+    {
+        var user = _userService.RegisterUser(request.Name, request.Email, request.Password);
+        await SignInUser(user);
+        return Created("api/v1/auth/me", new AuthMeResponseDto(user));
+    }
+
+    /// <summary>
+    /// Logs into an account
+    /// </summary>
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthMeResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Login([FromBody] AuthLoginRequestDto request)
+    {
+        var user = _userService.LoginUser(request.Email, request.Password);
+        await SignInUser(user);
+        return Ok(new AuthMeResponseDto(user));
+    }
+
+    private async Task SignInUser(Draw.it.Server.Models.User.UserModel user)
+    {
         var claims = new List<Claim>
         {
-            // new Claim("userId", user.Id.ToString()) 
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -50,8 +75,6 @@ public class AuthController : ControllerBase
                 IsPersistent = true, // Cookie persists even after browser is closed
             }
         );
-
-        return Created("api/v1/auth/me", new AuthMeResponseDto(user));
     }
 
     /// <summary>
@@ -74,9 +97,13 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Logout()
     {
-        var userId = HttpContext.ResolveUserId();
+        var user = HttpContext.ResolveUser(_userService);
 
-        _userService.DeleteUser(userId); // Clean up user, since it's anyway impossible to log back in
+        if (user.IsGuest)
+        {
+            _userService.DeleteUser(user.Id); // Clean up guest user
+        }
+
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
         return NoContent();
