@@ -6,12 +6,14 @@ import colors from "@/constants/colors.js";
 import Input from "@/components/input/Input.jsx"
 import Button from "@/components/button/Button.jsx";
 import Modal from "@/components/modal/Modal.jsx";
-import AuthPlaceholder from "@/components/AuthPlaceholder.jsx";
+import AccountSidebar from "@/components/AccountSidebar.jsx";
+import { FaUserCircle } from "react-icons/fa";
 
 function Index() {
     const [nameInputText, setNameInputText] = useState("");
     const [roomCodeInputText, setRoomCodeInputText] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -89,8 +91,12 @@ function Index() {
     
     return (
         <div className="index-container">
-            <AuthPlaceholder />
+            <AccountSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             
+            <div style={{ position: "absolute", top: "20px", right: "20px", cursor: "pointer" }} onClick={() => setSidebarOpen(true)}>
+                <FaUserCircle size={40} color={colors.primary} />
+            </div>
+
             <h1 id="app-title">
                 Draw <span className="highlight" style={{ backgroundColor: colors.primary, color: colors.secondaryDark }}>.it</span>
             </h1>
