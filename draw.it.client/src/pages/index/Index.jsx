@@ -1,5 +1,5 @@
 ﻿import "./Index.css"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import api from "@/utils/api.js";
 import colors from "@/constants/colors.js";
@@ -14,6 +14,23 @@ function Index() {
     const [roomCodeInputText, setRoomCodeInputText] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const res = await api.get("auth/me");
+                if (res.status === 200 && res.data) {
+                    setNameInputText(res.data.name);
+                    setIsLoggedIn(true);
+                }
+            } catch (err) {
+                // Not logged in or no valid session
+                setIsLoggedIn(false);
+            }
+        };
+        fetchMe();
+    }, [sidebarOpen]); // Re-check when sidebar closes in case they logged in
 
     const navigate = useNavigate();
 
@@ -30,14 +47,7 @@ function Index() {
         } catch (err) {}
 
         if (userData) {
-            try {
-                await api.post("user/new-name", { name: name });
-
-                return userData;
-            } catch (err) {
-                console.error("Error updating user name:", err);
-                throw err;
-            }
+            return userData;
         }
 
         // Create user
@@ -116,6 +126,7 @@ function Index() {
                 <Input value={nameInputText} 
                        onChange={(e) => setNameInputText(e.target.value)} 
                        placeholder="Enter name"
+                       disabled={isLoggedIn}
                 />
 
                 <div className="action-button-container">
