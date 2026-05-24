@@ -93,7 +93,7 @@ function Index() {
         <div className="index-container">
             <AccountSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             
-            <div style={{ position: "absolute", top: "20px", right: "20px", cursor: "pointer" }} onClick={() => setSidebarOpen(true)}>
+            <div style={{ position: "absolute", top: "20px", left: "20px", cursor: "pointer" }} onClick={() => setSidebarOpen(true)}>
                 <FaUserCircle size={40} color={colors.primary} />
             </div>
 
