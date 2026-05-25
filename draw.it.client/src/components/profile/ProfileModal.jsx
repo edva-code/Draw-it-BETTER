@@ -330,34 +330,23 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                     <>
                         <div className="profile-tabs">
                             <div
-                                className="profile-tab"
-                                style={{
-                                    color: activeTab === "stats" ? colors.primary : "var(--color-text)",
-                                    borderBottomColor: activeTab === "stats" ? colors.primary : "transparent"
-                                }}
+                                className={`profile-tab ${activeTab === "stats" ? "profile-tab--active" : ""}`}
                                 onClick={() => setActiveTab("stats")}
                             >
-                                <FaChartBar style={{ marginRight: 5 }} /> Stats
+                                <FaChartBar aria-hidden="true" style={{ marginRight: 5 }} /> Stats
                             </div>
                             <div
-                                className="profile-tab"
-                                style={{
-                                    color: activeTab === "achievements" ? colors.primary : "var(--color-text)",
-                                    borderBottomColor: activeTab === "achievements" ? colors.primary : "transparent"
-                                }}
+                                className={`profile-tab ${activeTab === "achievements" ? "profile-tab--active" : ""}`}
                                 onClick={() => setActiveTab("achievements")}
                             >
-                                <FaTrophy style={{ marginRight: 5 }} /> Achievements
+                                <FaTrophy aria-hidden="true" style={{ marginRight: 5 }} /> Achievements
                             </div>
                             <div
-                                className="profile-tab"
-                                style={{
-                                    color: activeTab === "friends" ? colors.primary : "var(--color-text)",
-                                    borderBottomColor: activeTab === "friends" ? colors.primary : "transparent"
-                                }}
+                                className={`profile-tab ${activeTab === "friends" ? "profile-tab--active" : ""}`}
                                 onClick={() => setActiveTab("friends")}
                             >
-                                <FaUserFriends style={{ marginRight: 5 }} /> Friends
+                                <FaUserFriends aria-hidden="true" style={{ marginRight: 5 }} /> Friends
+                                {friendRequests.length > 0 && <span className="profile-tab-badge">{friendRequests.length}</span>}
                             </div>
                         </div>
 
