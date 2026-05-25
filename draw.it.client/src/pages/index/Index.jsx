@@ -43,7 +43,7 @@ function Index() {
             if (meResponse.status === 200) {
                 userData = meResponse.data;
             }
-        } catch (err) {}
+        } catch (err) { }
 
         if (userData) {
             return userData;
@@ -54,7 +54,7 @@ function Index() {
             const joinResponse = await api.post("auth/join", {
                 name: name
             });
-            
+
             if (joinResponse.status === 201) {
                 return joinResponse.data;
             }
@@ -100,35 +100,35 @@ function Index() {
 
     //for smooth updating of user info in sidebar after login/logout without needing to refresh the page
     const handleAuthChange = (userData) => {
-    if (userData) {
-        setNameInputText(userData.name);
-        setIsLoggedIn(true);
-    } else {
-        // Logout
-        setNameInputText("");
-        setIsLoggedIn(false);
-    }
-};
+        if (userData) {
+            setNameInputText(userData.name);
+            setIsLoggedIn(true);
+        } else {
+            // Logout
+            setNameInputText("");
+            setIsLoggedIn(false);
+        }
+    };
 
-    
+
     return (
         <div className="index-container">
-            <AccountSidebar 
-                isOpen={sidebarOpen} 
+            <AccountSidebar
+                isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
                 onAuthChange={handleAuthChange}
             />
-            
-            <div 
-                style={{ 
-                    position: "absolute", 
-                    top: "20px", 
-                    left: "20px", 
+
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "20px",
                     cursor: "pointer",
                     opacity: sidebarOpen ? 0 : 1,
                     pointerEvents: sidebarOpen ? "none" : "auto",
                     transition: "opacity 0.3s ease-in-out"
-                }} 
+                }}
                 onClick={() => setSidebarOpen(true)}
             >
                 <FaUserCircle size={40} color={colors.primary} />
@@ -139,10 +139,17 @@ function Index() {
             </h1>
 
             <div className="action-container">
-                <Input value={nameInputText} 
-                       onChange={(e) => setNameInputText(e.target.value)} 
-                       placeholder="Enter name"
-                       disabled={isLoggedIn}
+                <Input
+                    value={nameInputText}
+                    onChange={(e) => {
+                        if (!isLoggedIn) {
+                            const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+                            setNameInputText(sanitized);
+                        }
+                    }}
+                    placeholder="Enter name"
+                    disabled={isLoggedIn}
+                    maxLength={20}
                 />
 
                 <div className="action-button-container">
@@ -153,7 +160,7 @@ function Index() {
                 <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
                     <div className="modal-container">
                         <h1>Enter room code</h1>
-                        <Input value={roomCodeInputText} placeholder="12..." onChange={(e) => setRoomCodeInputText(e.target.value)}/>
+                        <Input value={roomCodeInputText} placeholder="12..." onChange={(e) => setRoomCodeInputText(e.target.value)} />
                         <Button onClick={() => roomCodeInputText.trim() ? joinRoomAndNavigate(nameInputText, roomCodeInputText) : alert("Room code is required")}>Join</Button>
                     </div>
                 </Modal>
