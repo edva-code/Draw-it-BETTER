@@ -25,7 +25,7 @@ public record FriendDto(
     int TotalScore,
     int GamesPlayed,
     int GamesWon,
-    string? CurrentRoomId,   // non-null = in a match; used for the "in match together" badge
+    string? CurrentRoomId,
     string? EquippedTitle
 );
 
