@@ -6,7 +6,7 @@ import colors from "@/constants/colors.js";
 import Input from "@/components/input/Input.jsx"
 import Button from "@/components/button/Button.jsx";
 import Modal from "@/components/modal/Modal.jsx";
-import AccountSidebar from "@/components/AccountSidebar.jsx";
+import ProfileModal from "@/components/profile/ProfileModal.jsx";
 import { FaUserCircle } from "react-icons/fa";
 
 function Index() {
@@ -113,7 +113,7 @@ function Index() {
 
     return (
         <div className="index-container">
-            <AccountSidebar
+            <ProfileModal
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
                 onAuthChange={handleAuthChange}
