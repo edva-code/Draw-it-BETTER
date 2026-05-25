@@ -22,4 +22,6 @@ public class UserModel
     public bool IsAi { get; set; } = false;
 
     public DateTime? LastSeenAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
 }
