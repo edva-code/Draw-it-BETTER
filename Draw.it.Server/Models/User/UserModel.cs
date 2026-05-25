@@ -20,4 +20,6 @@ public class UserModel
     public bool IsConnected { get; set; } = false;
     public bool IsReady { get; set; } = false;
     public bool IsAi { get; set; } = false;
+
+    public DateTime? LastSeenAt { get; set; }
 }
