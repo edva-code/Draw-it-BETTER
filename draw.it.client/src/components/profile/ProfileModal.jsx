@@ -20,6 +20,12 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
     const [selectedStat, setSelectedStat] = useState("gamesPlayed"); // gamesPlayed, xp, wins
     const [timeframe, setTimeframe] = useState("weekly"); // daily, weekly, monthly
     const profileContentRef = useRef(null);
+    const [friends, setFriends] = useState([]);
+    const [friendRequests, setFriendRequests] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [friendsError, setFriendsError] = useState("");
+    const [friendsLoading, setFriendsLoading] = useState(false);
 
     const getAvatarInitials = (value) => {
         if (!value) return "?";
@@ -70,12 +76,94 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
         }
     };
 
+    const loadFriends = async () => {
+        if (!user || user.isGuest) return;
+        setFriendsLoading(true);
+        setFriendsError("");
+        try {
+            const [friendsRes, requestsRes] = await Promise.all([
+                api.get("friend"),
+                api.get("friend/requests"),
+            ]);
+            setFriends(friendsRes.data || []);
+            setFriendRequests(requestsRes.data || []);
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Failed to load friends");
+        } finally {
+            setFriendsLoading(false);
+        }
+    };
+
+    const handleSearch = async () => {
+        if (searchQuery.trim().length < 2) {
+            setFriendsError("Search requires at least 2 characters");
+            return;
+        }
+        setFriendsError("");
+        try {
+            const res = await api.get(`friend/search?username=${encodeURIComponent(searchQuery.trim())}`);
+            setSearchResults(res.data || []);
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Search failed");
+        }
+    };
+
+    const sendFriendRequest = async (username) => {
+        try {
+            await api.post("friend/request", { username });
+            await loadFriends();
+            await handleSearch();
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Failed to send request");
+        }
+    };
+
+    const acceptFriendRequest = async (friendshipId) => {
+        try {
+            await api.post(`friend/accept/${friendshipId}`);
+            await loadFriends();
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Failed to accept request");
+        }
+    };
+
+    const declineFriendRequest = async (friendshipId) => {
+        try {
+            await api.post(`friend/decline/${friendshipId}`);
+            await loadFriends();
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Failed to decline request");
+        }
+    };
+
+    const removeFriend = async (friendId) => {
+        try {
+            await api.delete(`friend/${friendId}`);
+            await loadFriends();
+        } catch (err) {
+            setFriendsError(err.response?.data?.error || "Failed to remove friend");
+        }
+    };
+
+    const formatLastSeen = (value) => {
+        if (!value) return "Unknown";
+        const dt = new Date(value);
+        if (Number.isNaN(dt.getTime())) return "Unknown";
+        return dt.toLocaleString();
+    };
+
     useEffect(() => {
         if (isOpen) {
             fetchMe();
             setActiveTab("stats"); // Reset tab on open
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && activeTab === "friends" && user && !user.isGuest) {
+            loadFriends();
+        }
+    }, [isOpen, activeTab, user]);
 
     useEffect(() => {
         if (!isOpen || !profileContentRef.current) return;
@@ -311,11 +399,128 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
 
                             {activeTab === "friends" && (
                                 <div className="tab-pane-friends">
-                                    <div className="friends-section">
-                                        <div className="friends-list">
-                                            Connect with friends (Coming Soon!)
+                                    {user.isGuest ? (
+                                        <div className="friends-empty">
+                                            Guests cannot use friends. Register or log in to add friends.
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            <div className="friends-section">
+                                                <h4>Find Friends</h4>
+                                                <div className="friends-search">
+                                                    <Input
+                                                        value={searchQuery}
+                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        placeholder="Search username"
+                                                    />
+                                                    <Button onClick={handleSearch}>Search</Button>
+                                                </div>
+                                                {friendsError && (
+                                                    <div className="friends-error">{friendsError}</div>
+                                                )}
+                                                {searchResults.length > 0 && (
+                                                    <div className="friends-list">
+                                                        {searchResults.map((result) => (
+                                                            <div key={result.userId} className="friend-card">
+                                                                <div className="friend-meta">
+                                                                    <span className={`status-dot ${result.isOnline ? "online" : "offline"}`} />
+                                                                    <div>
+                                                                        <div className="friend-name">{result.username}</div>
+                                                                        <div className="friend-sub">
+                                                                            {result.isOnline ? "Online" : `Last seen ${formatLastSeen(result.lastSeenAt)}`}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="friend-actions">
+                                                                    {result.isFriend ? (
+                                                                        <span className="friend-chip">Friend</span>
+                                                                    ) : result.hasPendingRequestToMe ? (
+                                                                        <>
+                                                                            <Button onClick={() => result.pendingFriendshipId && acceptFriendRequest(result.pendingFriendshipId)}>Accept</Button>
+                                                                            <button
+                                                                                className="ghost-btn"
+                                                                                onClick={() => result.pendingFriendshipId && declineFriendRequest(result.pendingFriendshipId)}
+                                                                            >
+                                                                                Decline
+                                                                            </button>
+                                                                        </>
+                                                                    ) : result.hasPendingRequestFromMe ? (
+                                                                        <span className="friend-chip muted">Request sent</span>
+                                                                    ) : (
+                                                                        <Button onClick={() => sendFriendRequest(result.username)}>Add</Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="friends-section">
+                                                <h4>Friend Requests</h4>
+                                                {friendRequests.length === 0 ? (
+                                                    <div className="friends-empty">No pending requests.</div>
+                                                ) : (
+                                                    <div className="friends-list">
+                                                        {friendRequests.map((req) => (
+                                                            <div key={req.friendshipId} className="friend-card">
+                                                                <div className="friend-meta">
+                                                                    <span className="status-dot offline" />
+                                                                    <div>
+                                                                        <div className="friend-name">{req.requesterUsername}</div>
+                                                                        <div className="friend-sub">Sent {formatLastSeen(req.sentAt)}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="friend-actions">
+                                                                    <Button onClick={() => acceptFriendRequest(req.friendshipId)}>Accept</Button>
+                                                                    <button
+                                                                        className="ghost-btn"
+                                                                        onClick={() => declineFriendRequest(req.friendshipId)}
+                                                                    >
+                                                                        Decline
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="friends-section">
+                                                <h4>Your Friends</h4>
+                                                {friendsLoading ? (
+                                                    <div className="friends-empty">Loading friends...</div>
+                                                ) : friends.length === 0 ? (
+                                                    <div className="friends-empty">No friends yet.</div>
+                                                ) : (
+                                                    <div className="friends-list">
+                                                        {friends.map((friend) => (
+                                                            <div key={friend.userId} className="friend-card">
+                                                                <div className="friend-meta">
+                                                                    <span className={`status-dot ${friend.isOnline ? "online" : "offline"}`} />
+                                                                    <div>
+                                                                        <div className="friend-name">{friend.username}</div>
+                                                                        <div className="friend-sub">
+                                                                            {friend.isOnline ? "Online" : `Last seen ${formatLastSeen(friend.lastSeenAt)}`}
+                                                                            {friend.currentRoomId ? " • In match" : ""}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="friend-actions">
+                                                                    <button
+                                                                        className="ghost-btn"
+                                                                        onClick={() => removeFriend(friend.userId)}
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
 

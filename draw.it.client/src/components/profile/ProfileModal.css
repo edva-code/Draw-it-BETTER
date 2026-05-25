@@ -208,6 +208,7 @@
     background: var(--color-bg-secondary);
     border-radius: 12px;
     padding: 20px;
+    margin-bottom: 20px;
 }
 
 .friends-section h4 {
@@ -216,13 +217,105 @@
 
 .friends-list {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.friends-search {
+    display: flex;
+    gap: 10px;
     align-items: center;
-    padding: 20px;
-    border: 2px dashed var(--color-border);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.friends-error {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.friends-empty {
+    padding: 15px;
+    border: 1px dashed var(--color-border);
     border-radius: 8px;
     color: var(--color-text-muted);
+    text-align: center;
     font-style: italic;
+}
+
+.friend-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.friend-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.friend-name {
+    font-weight: 700;
+}
+
+.friend-sub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.friend-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+.status-dot.online {
+    background: #22c55e;
+}
+
+.status-dot.offline {
+    background: #9ca3af;
+}
+
+.friend-chip {
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: var(--color-text);
+    background: var(--color-surface-hover);
+}
+
+.friend-chip.muted {
+    color: var(--color-text-muted);
+}
+
+.ghost-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.ghost-btn:hover {
+    background: var(--color-surface-hover);
 }
 
 /* Achievements */
