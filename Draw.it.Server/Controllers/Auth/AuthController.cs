@@ -37,9 +37,19 @@ public class AuthController : ControllerBase
     /// Registers a new account
     /// </summary>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthMeResponseDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Register([FromBody] AuthRegisterRequestDto request)
     {
+        // If already authenticated and in a room, reject
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                var existingUser = HttpContext.ResolveUser(_userService);
+                if (existingUser.RoomId != null)
+                    return Conflict(new { error = "You cannot change accounts while in a room." });
+            }
+            catch { /* not a valid session, proceed */ }
+        }
         var user = _userService.RegisterUser(request.Name, request.Email, request.Password);
         await SignInUser(user);
         return Created("api/v1/auth/me", new AuthMeResponseDto(user));
@@ -49,9 +59,18 @@ public class AuthController : ControllerBase
     /// Logs into an account
     /// </summary>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(AuthMeResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Login([FromBody] AuthLoginRequestDto request)
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                var existingUser = HttpContext.ResolveUser(_userService);
+                if (existingUser.RoomId != null)
+                    return Conflict(new { error = "You cannot change accounts while in a room." });
+            }
+            catch { /* not a valid session, proceed */ }
+        }
         var user = _userService.LoginUser(request.Email, request.Password);
         await SignInUser(user);
         return Ok(new AuthMeResponseDto(user));
