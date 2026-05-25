@@ -404,9 +404,17 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                 const heightPerc = Math.max(10, Math.floor((val / maxVal) * 100));
                                                 // Create labels based on timeframe length
                                                 let label = "";
-                                                if (timeframe === "daily") label = ["M", "T", "W", "T", "F", "S", "S"][idx];
+                                                if (timeframe === "daily") {
+                                                    const d = new Date();
+                                                    d.setDate(d.getDate() - (chartData.length - 1 - idx));
+                                                    label = ["Su", "M", "T", "W", "Th", "F", "Sa"][d.getDay()];
+                                                }
                                                 if (timeframe === "weekly") label = `W${idx + 1}`;
-                                                if (timeframe === "monthly") label = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"][idx];
+                                                if (timeframe === "monthly") {
+                                                    const d = new Date();
+                                                    d.setMonth(d.getMonth() - (chartData.length - 1 - idx));
+                                                    label = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
+                                                }
 
                                                 return (
                                                     <div key={idx} className="chart-bar-wrapper">
