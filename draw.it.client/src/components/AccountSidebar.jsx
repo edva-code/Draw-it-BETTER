@@ -31,21 +31,10 @@ function AccountSidebar({ isOpen, onClose }) {
         }
     }, [isOpen]);
 
-    const handleLogin = async () => {
-        try {
-            await api.post("auth/login", { email, password });
-            await fetchMe();
-            setEmail("");
-            setPassword("");
-        } catch (err) {
-            alert(err.response?.data?.error || "Login failed");
-        }
-    };
-
     const handleRegister = async () => {
         try {
-            await api.post("auth/register", { name, email, password });
-            await fetchMe();
+            const res = await api.post("auth/register", { name, email, password });
+            setUser(res.data);          // ← set immediately from response
             setName("");
             setEmail("");
             setPassword("");
@@ -53,6 +42,18 @@ function AccountSidebar({ isOpen, onClose }) {
             alert(err.response?.data?.error || "Register failed");
         }
     };
+
+    const handleLogin = async () => {
+        try {
+            const res = await api.post("auth/login", { email, password });
+            setUser(res.data);          // ← set immediately from response
+            setEmail("");
+            setPassword("");
+        } catch (err) {
+            alert(err.response?.data?.error || "Login failed");
+        }
+    };
+
 
     const handleLogout = async () => {
         try {
@@ -75,6 +76,10 @@ function AccountSidebar({ isOpen, onClose }) {
                     <div className="user-profile">
                         <p><strong>Username:</strong> {user.name}</p>
                         <p><strong>Total Score:</strong> {user.totalScore}</p>
+                        <p><strong>Games Played:</strong> {user.gamesPlayed}</p>
+                        <p><strong>Games Won:</strong> {user.gamesWon}</p>
+                        <p><strong>Correct Guesses:</strong> {user.correctGuesses}</p>
+                        <p><strong>Fast Guesses:</strong> {user.fastGuesses}</p>
                         <div className="sidebar-actions" style={{ marginTop: "20px" }}>
                             <Button onClick={handleLogout}>Logout</Button>
                         </div>
