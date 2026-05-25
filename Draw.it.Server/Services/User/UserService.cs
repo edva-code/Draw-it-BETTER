@@ -100,7 +100,7 @@ public class UserService : IUserService
     public UserModel LoginUser(string email, string password)
     {
         email = email.Trim().ToLowerInvariant();
-        
+
         var user = _userRepository.FindByEmail(email);
         if (user == null || user.PasswordHash == null)
         {
@@ -132,6 +132,11 @@ public class UserService : IUserService
     public UserModel GetUser(long userId)
     {
         return _userRepository.FindById(userId) ?? throw new EntityNotFoundException($"User with id={userId} not found");
+    }
+
+    public void SaveUser(UserModel user)
+    {
+        _userRepository.Save(user);
     }
 
     /// <summary>
