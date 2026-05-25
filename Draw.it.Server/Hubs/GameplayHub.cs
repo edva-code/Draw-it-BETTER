@@ -1,6 +1,7 @@
 using Draw.it.Server.Hubs.DTO;
 using Draw.it.Server.Enums;
 using Draw.it.Server.Integrations.Gemini;
+using Draw.it.Server.Models.Game;
 using Draw.it.Server.Models.User;
 using Draw.it.Server.Services.Game;
 using Draw.it.Server.Services.Room;
@@ -285,6 +286,8 @@ public class GameplayHub : BaseHub<GameplayHub>
 
         await Clients.Group(roomId).SendAsync("ReceiveGameEnded", scores);
 
+        _userService.ApplyGameResults(players, game.TotalScores, game.CorrectGuesses, game.FastGuesses);
+
         await Task.Delay(EndGameDelayMs);
 
         _userService.RemoveRoomFromAllUsers(roomId);
@@ -350,20 +353,37 @@ public class GameplayHub : BaseHub<GameplayHub>
         await SendCorrectAnswer(game.RoomId, aiUser, game.WordToDraw);
     }
 
-    private bool CheckCorrectGuess(string message, string wordToDraw)
-    {
-        return string.Equals(message.Trim(), wordToDraw, StringComparison.OrdinalIgnoreCase);
-    }
-
     private async Task SendCorrectAnswer(string roomId, UserModel user, string wordToDraw)
     {
         await Clients.Group(roomId).SendAsync("ReceiveMessage", user.Name, "Guessed The Word!", true);
 
-        _gameService.AddGuessedPlayer(roomId, user.Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+        var game = _gameService.GetGame(roomId);
+        var isFastGuess = IsFastGuess(roomId, game);
+
+        _gameService.AddGuessedPlayer(roomId, user.Id, isFastGuess, out bool turnEnded, out bool roundEnded, out bool gameEnded);
 
         var playerStatuses = GetPlayerStatuses(roomId);
         await Clients.Group(roomId).SendAsync("ReceivePlayerStatuses", playerStatuses);
 
         if (turnEnded) await ManageTurnEnding(roomId, wordToDraw, roundEnded, gameEnded);
+    }
+
+    private bool CheckCorrectGuess(string message, string wordToDraw)
+    {
+        return string.Equals(message.Trim(), wordToDraw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsFastGuess(string roomId, GameModel game)
+    {
+        if (!game.TimerStarted)
+        {
+            return false;
+        }
+
+        var drawingTimeSeconds = _roomService.GetRoomSettings(roomId).DrawingTime;
+        var remainingSeconds = Math.Max(0, (game.RoundEnd - DateTime.Now).TotalSeconds);
+        var elapsedSeconds = drawingTimeSeconds - remainingSeconds;
+
+        return elapsedSeconds >= 0 && elapsedSeconds <= 10;
     }
 }

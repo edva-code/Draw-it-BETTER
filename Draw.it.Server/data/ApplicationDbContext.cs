@@ -72,6 +72,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasColumnName("total_score")
                 .HasDefaultValue(0);
 
+            entity.Property(u => u.GamesPlayed)
+                .HasColumnName("games_played")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.GamesWon)
+                .HasColumnName("games_won")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.CorrectGuesses)
+                .HasColumnName("correct_guesses")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.FastGuesses)
+                .HasColumnName("fast_guesses")
+                .HasDefaultValue(0);
+
             entity.Ignore(u => u.IsGuest);
 
             entity.HasIndex(u => u.Email).IsUnique();

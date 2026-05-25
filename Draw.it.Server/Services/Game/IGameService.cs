@@ -10,7 +10,7 @@ public interface IGameService
     GameModel GetGame(string roomId);
     long GetDrawerId(string roomId);
     bool AddConnectedPlayer(string roomId, long userId);
-    void AddGuessedPlayer(string roomId, long userId, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+    void AddGuessedPlayer(string roomId, long userId, bool isFastGuess, out bool turnEnded, out bool roundEnded, out bool gameEnded);
     string GetMaskedWord(string word);
     string GetRandomWord(long categoryId);
     void AddCanvasEvent(string roomId, DrawDto drawDto);

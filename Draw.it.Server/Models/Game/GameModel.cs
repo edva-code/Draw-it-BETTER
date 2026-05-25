@@ -15,6 +15,7 @@ public class GameModel
     public required string WordToDraw { get; set; }
     public List<long> GuessedPlayersIds { get; set; } = [];
     public Dictionary<long, int> CorrectGuesses { get; set; } = [];
+    public Dictionary<long, int> FastGuesses { get; set; } = [];
     public Dictionary<long, int> RoundScores { get; set; } = [];
     public Dictionary<long, int> TotalScores { get; set; } = [];
     public GamePhase CurrentPhase { get; set; } = GamePhase.DrawingPhase;

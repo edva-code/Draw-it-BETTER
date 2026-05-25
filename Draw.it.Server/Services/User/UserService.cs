@@ -186,6 +186,43 @@ public class UserService : IUserService
         return _userRepository.FindAiPlayerByRoomId(roomId);
     }
 
+    public void ApplyGameResults(IEnumerable<UserModel> players, Dictionary<long, int> totalScores,
+        Dictionary<long, int> correctGuesses, Dictionary<long, int> fastGuesses)
+    {
+        var trackedPlayers = players
+            .Where(p => !p.IsAi && !p.IsGuest)
+            .ToList();
+
+        if (trackedPlayers.Count == 0)
+        {
+            return;
+        }
+
+        var maxScore = trackedPlayers
+            .Max(p => totalScores.GetValueOrDefault(p.Id, 0));
+
+        var winnerIds = trackedPlayers
+            .Where(p => totalScores.GetValueOrDefault(p.Id, 0) == maxScore)
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        foreach (var player in trackedPlayers)
+        {
+            var user = GetUser(player.Id);
+            user.GamesPlayed += 1;
+            if (winnerIds.Contains(user.Id))
+            {
+                user.GamesWon += 1;
+            }
+
+            user.TotalScore += totalScores.GetValueOrDefault(user.Id, 0);
+            user.CorrectGuesses += correctGuesses.GetValueOrDefault(user.Id, 0);
+            user.FastGuesses += fastGuesses.GetValueOrDefault(user.Id, 0);
+
+            _userRepository.Save(user);
+        }
+    }
+
     private string GenerateAiPlayerName(string roomId)
     {
         var tsNow = DateTime.Now.ToString("yyyyMMddHHmmssfff");

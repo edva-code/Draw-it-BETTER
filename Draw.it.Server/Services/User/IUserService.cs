@@ -16,4 +16,6 @@ public interface IUserService
     void UpdateName(long userId, string newName);
     void CreateAiUser(string roomId);
     UserModel GetAiUserInRoom(string roomId);
+    void ApplyGameResults(IEnumerable<UserModel> players, Dictionary<long, int> totalScores,
+        Dictionary<long, int> correctGuesses, Dictionary<long, int> fastGuesses);
 }
