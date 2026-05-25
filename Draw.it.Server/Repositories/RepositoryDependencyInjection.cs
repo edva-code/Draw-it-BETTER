@@ -25,16 +25,12 @@ public static class RepositoryDependencyInjection
         }
         else
         {
-            // Use DB-backed repositories
             services.AddScoped<IUserRepository, DbUserRepository>();
-            services.AddSingleton<IFriendshipRepository, FriendshipRepository>();
+            services.AddScoped<IFriendshipRepository, DbFriendshipRepository>();
             services.AddScoped<IRoomRepository, DbRoomRepository>();
-
-            // Keep existing singletons
             services.AddSingleton<IWordPoolRepository, FileStreamWordPoolRepository>();
             services.AddSingleton<IGameRepository, InMemGameRepository>();
         }
-
         return services;
     }
 }
