@@ -78,6 +78,11 @@ public class DbUserRepository(ApplicationDbContext context) : IUserRepository
     {
         return context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
     }
+    public UserModel? FindByName(string name)
+{
+    return context.Users.AsNoTracking()
+        .FirstOrDefault(u => u.Name.ToLower() == name.ToLower() && !u.IsAi);
+}
 }
 
 

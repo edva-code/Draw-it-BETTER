@@ -8,4 +8,5 @@ public interface IUserRepository : IRepository<UserModel, long>
     IEnumerable<UserModel> FindByRoomId(string roomId);
     UserModel FindAiPlayerByRoomId(string roomId);
     UserModel? FindByEmail(string email);
+    UserModel? FindByName(string name);
 }

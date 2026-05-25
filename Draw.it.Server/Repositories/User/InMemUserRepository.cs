@@ -58,4 +58,11 @@ public class InMemUserRepository : IUserRepository
     {
         return _users.Values.FirstOrDefault(u => u.Email == email);
     }
+
+    public UserModel? FindByName(string name)
+{
+    return _users.Values.FirstOrDefault(u => 
+        string.Equals(u.Name, name, StringComparison.OrdinalIgnoreCase) && !u.IsAi);
+}
+
 }

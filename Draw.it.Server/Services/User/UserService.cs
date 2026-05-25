@@ -55,6 +55,11 @@ public class UserService : IUserService
             throw new AppException("Email is already in use", System.Net.HttpStatusCode.Conflict);
         }
 
+        if (_userRepository.FindByName(name) != null)
+        {
+            throw new AppException("Username is already in use", System.Net.HttpStatusCode.Conflict);
+        }
+
         var user = new UserModel
         {
             Id = _userRepository.GetNextId(),
