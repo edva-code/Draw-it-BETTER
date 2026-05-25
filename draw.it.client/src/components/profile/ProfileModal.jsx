@@ -572,8 +572,10 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                                         <div className="friend-text-block">
                                                                             <div className="friend-name">
                                                                                 {friend.username}
-                                                                                {friend.equippedTitle && (
-                                                                                    <span className="friend-inline-title">{friend.equippedTitle}</span>
+                                                                                {(friend.equippedTitle || friend.EquippedTitle) && (
+                                                                                    <span className="friend-inline-title">
+                                                                                        {friend.equippedTitle || friend.EquippedTitle}
+                                                                                    </span>
                                                                                 )}
                                                                             </div>
                                                                             <div className="friend-sub">

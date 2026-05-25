@@ -183,14 +183,14 @@
     align-items: flex-end;
     flex-shrink: 0;
     min-width: 32px;
-    height: 150px; /* exactly the bar zone height, not including label row */
-    padding-top: 2px;
+    height: 145px; /* exactly the bar zone height, not including label row */
+    padding-bottom: 2px;
 }
 
 .chart-y-tick {
     font-size: 0.68rem;
     color: var(--color-text-faint);
-    line-height: 1;
+    line-height: 3;
 }
 
 .chart-bars {
@@ -447,15 +447,15 @@
 .friend-inline-title {
     display: inline-flex;
     align-items: center;
-    max-width: 100%;
+    flex-shrink: 0;
     padding: 2px 8px;
     border-radius: 999px;
     font-size: 0.68rem;
-    line-height: 1;
+    line-height: 1.4;
     font-weight: 600;
     color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+    background: rgba(251, 112, 0, 0.12);
+    border: 1px solid rgba(251, 112, 0, 0.35);
     white-space: nowrap;
 }
 
