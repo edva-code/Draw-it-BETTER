@@ -13,10 +13,10 @@ const initialRoomState = {
 
 export default function RoomPage() {
     const lobbyConnection = useContext(LobbyHubContext);
-    const {roomId} = useParams();
+    const { roomId } = useParams();
     const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [roomState, setRoomState] = useState(initialRoomState); // state for the room
-    const {players, settings} = roomState;
+    const { players, settings } = roomState;
 
     const navigate = useNavigate();
 
@@ -112,29 +112,28 @@ export default function RoomPage() {
                         <ul className="players-list">
                             {players.map((p) => (
                                 <li key={p.name} className={`player-item ${p.isReady ? 'ready' : ''}`}>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                        {p.equippedTitle && (
+                                            <span style={{
+                                                fontSize: "0.7rem",
+                                                fontWeight: "bold",
+                                                color: "#f59e0b",          /* amber — distinct, readable on dark bg */
+                                                letterSpacing: "0.04em",
+                                                textTransform: "uppercase",
+                                                opacity: 0.9,
+                                            }}>
+                                                [{p.equippedTitle}]
+                                            </span>
+                                        )}
                                         {p.name}
                                         {p.isHost && <span title="Host">👑</span>}
                                         {!p.isGuest && (
-                                            <span
-                                                title="Registered account"
-                                                style={{
-                                                    display: "inline-flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    width: "16px",
-                                                    height: "16px",
-                                                    borderRadius: "50%",
-                                                    backgroundColor: "#22c55e",
-                                                    color: "#fff",
-                                                    fontSize: "10px",
-                                                    fontWeight: "bold",
-                                                    flexShrink: 0,
-                                                    lineHeight: 1,
-                                                }}
-                                            >
-                                                ✓
-                                            </span>
+                                            <span title="Registered account" style={{
+                                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                                width: "16px", height: "16px", borderRadius: "50%",
+                                                backgroundColor: "#22c55e", color: "#fff",
+                                                fontSize: "10px", fontWeight: "bold", flexShrink: 0,
+                                            }}>✓</span>
                                         )}
                                     </span>
                                 </li>

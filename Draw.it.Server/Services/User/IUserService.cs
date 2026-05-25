@@ -8,6 +8,7 @@ public interface IUserService
     UserModel RegisterUser(string name, string email, string password);
     UserModel LoginUser(string email, string password);
     void DeleteUser(long userId);
+    void SaveUser(UserModel user);
     UserModel GetUser(long userId);
     void SetRoom(long userId, string? roomId);
     void SetConnectedStatus(long userId, bool isConnected);
