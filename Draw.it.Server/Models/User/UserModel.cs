@@ -13,6 +13,7 @@ public class UserModel
     public int GamesWon { get; set; } = 0;
     public int CorrectGuesses { get; set; } = 0;
     public int FastGuesses { get; set; } = 0;
+    public AchievementId? EquippedTitle { get; set; } = null;
 
     public bool IsGuest => Email == null;
     public string? RoomId { get; set; } // Link to Room
