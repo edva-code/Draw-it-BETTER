@@ -24,13 +24,12 @@ function Index() {
                     setNameInputText(res.data.name);
                     setIsLoggedIn(true);
                 }
-            } catch (err) {
-                // Not logged in or no valid session
+            } catch {
                 setIsLoggedIn(false);
             }
         };
         fetchMe();
-    }, [sidebarOpen]); // Re-check when sidebar closes in case they logged in
+    }, []);
 
     const navigate = useNavigate();
 
@@ -98,10 +97,27 @@ function Index() {
             alert(err.response?.data?.error || "Could not create room. Please try again.");
         }
     }
+
+    //for smooth updating of user info in sidebar after login/logout without needing to refresh the page
+    const handleAuthChange = (userData) => {
+    if (userData) {
+        setNameInputText(userData.name);
+        setIsLoggedIn(true);
+    } else {
+        // Logout
+        setNameInputText("");
+        setIsLoggedIn(false);
+    }
+};
+
     
     return (
         <div className="index-container">
-            <AccountSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <AccountSidebar 
+                isOpen={sidebarOpen} 
+                onClose={() => setSidebarOpen(false)}
+                onAuthChange={handleAuthChange}
+            />
             
             <div 
                 style={{ 

@@ -5,7 +5,7 @@ import Button from "@/components/button/Button.jsx";
 import "./AccountSidebar.css";
 import colors from "@/constants/colors.js";
 
-function AccountSidebar({ isOpen, onClose }) {
+function AccountSidebar({ isOpen, onClose, onAuthChange }) {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -34,7 +34,8 @@ function AccountSidebar({ isOpen, onClose }) {
     const handleRegister = async () => {
         try {
             const res = await api.post("auth/register", { name, email, password });
-            setUser(res.data);          // ← set immediately from response
+            setUser(res.data);
+            onAuthChange(res.data);  // Notify parent component of auth change
             setName("");
             setEmail("");
             setPassword("");
@@ -47,6 +48,7 @@ function AccountSidebar({ isOpen, onClose }) {
         try {
             const res = await api.post("auth/login", { email, password });
             setUser(res.data);          // ← set immediately from response
+            onAuthChange(res.data);  // Notify parent component of auth change
             setEmail("");
             setPassword("");
         } catch (err) {
@@ -59,6 +61,7 @@ function AccountSidebar({ isOpen, onClose }) {
         try {
             await api.post("auth/logout");
             setUser(null);
+            onAuthChange(null);  // Notify parent component of auth change
         } catch (err) {
             console.error(err);
         }
