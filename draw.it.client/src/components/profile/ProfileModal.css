@@ -71,6 +71,25 @@
     border-bottom: 3px solid transparent;
 }
 
+.profile-tab--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.profile-tab-badge {
+    margin-left: 8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .profile-tab:hover {
     background: var(--color-surface-hover);
 }
