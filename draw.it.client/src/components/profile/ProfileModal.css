@@ -222,16 +222,42 @@
     color: var(--color-text);
 }
 
-/* Friends Placeholder */
+/* Friends */
 .friends-section {
     background: var(--color-bg-secondary);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    border: 1px solid var(--color-border);
+}
+
+.friends-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
 }
 
 .friends-section h4 {
-    margin: 0 0 10px 0;
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.friends-section-count {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .friends-list {
@@ -241,42 +267,115 @@
 }
 
 .friends-search {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     gap: 10px;
     align-items: center;
-    margin-top: 10px;
-    margin-bottom: 10px;
 }
 
 .friends-error {
-    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.24);
     font-size: 0.85rem;
-    margin-bottom: 10px;
+}
+
+.friends-error-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
 }
 
 .friends-empty {
-    padding: 15px;
+    padding: 18px;
     border: 1px dashed var(--color-border);
-    border-radius: 8px;
+    border-radius: 12px;
     color: var(--color-text-muted);
     text-align: center;
     font-style: italic;
 }
 
+.friends-empty-cta {
+    font-style: normal;
+    padding: 24px 18px;
+}
+
+.friends-empty-icon {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+}
+
+.friends-empty-title {
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 4px;
+}
+
+.friends-empty-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 .friend-card {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 14px;
-    border-radius: 10px;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
     border: 1px solid var(--color-border);
     background: var(--color-surface);
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+
+.friend-card--interactive {
+    cursor: pointer;
+}
+
+.friend-card--interactive:hover {
+    transform: translateY(-1px);
+    background: var(--color-surface-hover);
+}
+
+.friend-card--selected {
+    border-color: var(--color-primary);
 }
 
 .friend-meta {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    min-width: 0;
+}
+
+.friend-avatar-wrap {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.friend-avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.74rem;
+    font-weight: 700;
 }
 
 .friend-name {
@@ -292,6 +391,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .status-dot {
@@ -299,7 +399,10 @@
     height: 10px;
     border-radius: 50%;
     background: var(--color-text-muted);
-    flex-shrink: 0;
+    border: 2px solid var(--color-surface);
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
 }
 
 .status-dot.online {
@@ -313,28 +416,184 @@
 .friend-chip {
     border: 1px solid var(--color-border);
     border-radius: 999px;
-    padding: 4px 10px;
+    padding: 6px 10px;
     font-size: 0.75rem;
+    font-weight: 600;
     color: var(--color-text);
     background: var(--color-surface-hover);
 }
 
-.friend-chip.muted {
+.friend-chip--confirmed {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.24);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.friend-chip--pending {
     color: var(--color-text-muted);
 }
 
-.ghost-btn {
-    background: transparent;
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-    border-radius: 999px;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 0.8rem;
+.friend-chip--ingame {
+    color: var(--color-primary);
+    border-color: rgba(251, 112, 0, 0.28);
+    background: rgba(251, 112, 0, 0.1);
 }
 
-.ghost-btn:hover {
-    background: var(--color-surface-hover);
+.friend-stats-preview {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.friend-stat-preview-item {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.friend-stat-preview-value {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.friend-stat-preview-label {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.friend-details-panel {
+    border-color: rgba(251, 112, 0, 0.24);
+}
+
+.friend-details-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.friend-details-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.friend-details-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.friend-details-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.friend-details-stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.friend-details-stat-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.friend-details-stat-label {
+    font-size: 0.76rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.skeleton-card {
+    pointer-events: none;
+}
+
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--color-bg-secondary) 25%,
+            var(--color-surface-hover) 50%,
+            var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+.skeleton-avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.friend-skeleton-text {
+    min-width: 140px;
+    width: 180px;
+}
+
+.skeleton-line {
+    height: 10px;
+    margin-bottom: 6px;
+}
+
+.skeleton-line--lg {
+    width: 65%;
+}
+
+.skeleton-line--sm {
+    width: 42%;
+    margin-bottom: 0;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (max-width: 700px) {
+    .friends-search {
+        grid-template-columns: 1fr;
+    }
+
+    .friend-card {
+        align-items: flex-start;
+    }
+
+    .friend-actions {
+        width: 100%;
+    }
+
+    .friend-actions .button {
+        flex: 1;
+    }
+
+    .friend-stats-preview,
+    .friend-details-stats-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Achievements */
@@ -395,13 +654,25 @@
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Auth / Register styling */
