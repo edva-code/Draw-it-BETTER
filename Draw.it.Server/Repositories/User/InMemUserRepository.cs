@@ -60,9 +60,17 @@ public class InMemUserRepository : IUserRepository
     }
 
     public UserModel? FindByName(string name)
-{
-    return _users.Values.FirstOrDefault(u => 
-        string.Equals(u.Name, name, StringComparison.OrdinalIgnoreCase) && !u.IsAi);
-}
+    {
+        return _users.Values.FirstOrDefault(u =>
+            string.Equals(u.Name, name, StringComparison.OrdinalIgnoreCase) && !u.IsAi);
+    }
+
+    public IEnumerable<UserModel> SearchByName(string partialName)
+    {
+        partialName = partialName.ToLowerInvariant();
+        return _users.Values
+            .Where(u => u.Name.ToLowerInvariant().Contains(partialName) && !u.IsAi)
+            .ToList();
+    }
 
 }
