@@ -106,6 +106,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(u => u.IsAi)
                 .HasColumnName("is_ai");
 
+            entity.Property(u => u.LastSeenAt)
+                .HasColumnName("last_seen_at")
+                .IsRequired(false);
+
             entity.HasOne<RoomModel>()
                 .WithMany()
                 .HasForeignKey(u => u.RoomId)
