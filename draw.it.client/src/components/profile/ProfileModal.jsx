@@ -26,6 +26,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
     const [searchResults, setSearchResults] = useState([]);
     const [friendsError, setFriendsError] = useState("");
     const [friendsLoading, setFriendsLoading] = useState(false);
+    const [selectedFriend, setSelectedFriend] = useState(null);
 
     const getAvatarInitials = (value) => {
         if (!value) return "?";
@@ -149,7 +150,20 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
         if (!value) return "Unknown";
         const dt = new Date(value);
         if (Number.isNaN(dt.getTime())) return "Unknown";
-        return dt.toLocaleString();
+
+        const diffMs = Date.now() - dt.getTime();
+        const minutes = Math.floor(diffMs / 60000);
+
+        if (minutes < 1) return "Just now";
+        if (minutes < 60) return `${minutes}m ago`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
+
+        return dt.toLocaleDateString();
     };
 
     useEffect(() => {
