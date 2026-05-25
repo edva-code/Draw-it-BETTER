@@ -437,22 +437,25 @@
 }
 
 .friend-name {
-    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 7px;
-    line-height: 1.2;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .friend-inline-title {
-    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    line-height: 1;
     font-weight: 600;
     color: var(--color-primary);
-    background: rgba(251, 112, 0, 0.13);
-    border: 1px solid rgba(251, 112, 0, 0.25);
-    border-radius: 999px;
-    padding: 2px 8px;
-    line-height: 1.4;
+    background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
     white-space: nowrap;
 }
 
