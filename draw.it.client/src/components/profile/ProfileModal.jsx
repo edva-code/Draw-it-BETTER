@@ -399,34 +399,45 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                             </div>
                                         </div>
 
-                                        <div className="chart-bars">
-                                            {chartData.map((val, idx) => {
-                                                const heightPerc = Math.max(10, Math.floor((val / maxVal) * 100));
-                                                // Create labels based on timeframe length
-                                                let label = "";
-                                                if (timeframe === "daily") {
-                                                    const d = new Date();
-                                                    d.setDate(d.getDate() - (chartData.length - 1 - idx));
-                                                    label = ["Su", "M", "T", "W", "Th", "F", "Sa"][d.getDay()];
-                                                }
-                                                if (timeframe === "weekly") label = `W${idx + 1}`;
-                                                if (timeframe === "monthly") {
-                                                    const d = new Date();
-                                                    d.setMonth(d.getMonth() - (chartData.length - 1 - idx));
-                                                    label = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
-                                                }
+                                        <div className="chart-area">
+                                            <div className="chart-y-axis">
+                                                {[...Array(4)].map((_, i) => {
+                                                    const tickVal = Math.round((maxVal / 3) * (3 - i));
+                                                    return (
+                                                        <span key={i} className="chart-y-tick">{tickVal}</span>
+                                                    );
+                                                })}
+                                                <span className="chart-y-tick">0</span>
+                                            </div>
 
-                                                return (
-                                                    <div key={idx} className="chart-bar-wrapper">
-                                                        <div
-                                                            className="chart-bar"
-                                                            style={{ height: `${heightPerc}%`, color: colors.primary }}
-                                                            title={`${val} ${selectedStat}`}
-                                                        ></div>
-                                                        <span className="chart-label">{label}</span>
-                                                    </div>
-                                                )
-                                            })}
+                                            <div className="chart-bars">
+                                                {chartData.map((val, idx) => {
+                                                    const heightPerc = Math.max(4, Math.floor((val / maxVal) * 100));
+                                                    let label = "";
+                                                    if (timeframe === "daily") {
+                                                        const d = new Date();
+                                                        d.setDate(d.getDate() - (chartData.length - 1 - idx));
+                                                        label = ["Su", "M", "T", "W", "Th", "F", "Sa"][d.getDay()];
+                                                    }
+                                                    if (timeframe === "weekly") label = `W${idx + 1}`;
+                                                    if (timeframe === "monthly") {
+                                                        const d = new Date();
+                                                        d.setMonth(d.getMonth() - (chartData.length - 1 - idx));
+                                                        label = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
+                                                    }
+
+                                                    return (
+                                                        <div key={idx} className="chart-bar-wrapper">
+                                                            <div
+                                                                className="chart-bar"
+                                                                style={{ height: `${heightPerc}%`, color: colors.primary }}
+                                                                title={`${val} ${selectedStat}`}
+                                                            ></div>
+                                                            <span className="chart-label">{label}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
 
                                         <div className="stat-toggles">
