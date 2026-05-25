@@ -206,19 +206,17 @@
     overflow: visible;
 }
 
-/* Grid lines — 3 horizontal lines at 33%, 66%, 100% from bottom */
 .chart-bars::before {
     content: "";
     position: absolute;
-    inset: 0;
+    inset: 0 0 24px 0; /* stops above the label area */
     background-image:
-        linear-gradient(to right, var(--color-border) 1px, transparent 1px),
         repeating-linear-gradient(
             to top,
-            transparent,
-            transparent calc(33.33% - 1px),
-            rgba(255,255,255,0.06) calc(33.33% - 1px),
-            rgba(255,255,255,0.06) 33.33%
+            rgba(255, 255, 255, 0.06) 0,
+            rgba(255, 255, 255, 0.06) 1px,
+            transparent 1px,
+            transparent 33.333%
         );
     pointer-events: none;
     z-index: 0;
