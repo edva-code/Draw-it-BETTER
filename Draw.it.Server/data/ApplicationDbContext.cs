@@ -8,6 +8,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<RoomModel> Rooms => Set<RoomModel>();
     public DbSet<UserModel> Users => Set<UserModel>();
+    public DbSet<FriendshipModel> Friendships { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
