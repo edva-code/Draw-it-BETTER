@@ -169,12 +169,35 @@
     color: var(--color-text);
 }
 
+.chart-area {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    height: 150px;
+}
+
+.chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 26px;
+    flex-shrink: 0;
+    min-width: 28px;
+}
+
+.chart-y-tick {
+    font-size: 0.68rem;
+    color: var(--color-text-faint);
+    line-height: 1;
+}
+
 .chart-bars {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    height: 150px;
-    gap: 10px;
+    justify-content: flex-start;
+    flex: 1;
+    gap: 8px;
 }
 
 .chart-bar-wrapper {
