@@ -257,14 +257,32 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
 
     const getChartData = () => {
         if (!user) return [];
+
         let baseValue = 0;
         if (selectedStat === "gamesPlayed") baseValue = user.gamesPlayed;
         else if (selectedStat === "xp") baseValue = xpValue;
         else if (selectedStat === "wins") baseValue = user.gamesWon;
         else if (selectedStat === "guesses") baseValue = user.correctGuesses;
 
-        // Spread the total across chunks for a stable, readable trend.
-        const count = timeframe === "daily" ? 7 : (timeframe === "weekly" ? 4 : 6);
+        // Calculate how many columns the account actually deserves.
+        const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+        const now = new Date();
+
+        const getEarnedCount = (maxCount, unitMs) => {
+            if (!createdAt) return maxCount;
+            const elapsed = Math.floor((now - createdAt) / unitMs);
+            return Math.max(1, Math.min(elapsed + 1, maxCount));
+        };
+
+        const DAY_MS   = 1000 * 60 * 60 * 24;
+        const WEEK_MS  = DAY_MS * 7;
+        const MONTH_MS = DAY_MS * 30;
+
+        let count;
+        if (timeframe === "daily")   count = getEarnedCount(7, DAY_MS);
+        else if (timeframe === "weekly")  count = getEarnedCount(4, WEEK_MS);
+        else                              count = getEarnedCount(6, MONTH_MS);
+
         if (baseValue <= 0) return Array(count).fill(0);
 
         const data = [];

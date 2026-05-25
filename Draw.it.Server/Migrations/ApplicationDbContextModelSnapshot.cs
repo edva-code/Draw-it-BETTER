@@ -59,6 +59,9 @@ namespace Draw.it.Server.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("correct_guesses");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
