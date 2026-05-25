@@ -406,8 +406,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                     return (
                                                         <span key={i} className="chart-y-tick">{tickVal}</span>
                                                     );
-                                                })}
-                                                <span className="chart-y-tick">0</span>
+                                                })}  
                                             </div>
 
                                             <div className="chart-bars">
