@@ -112,7 +112,31 @@ export default function RoomPage() {
                         <ul className="players-list">
                             {players.map((p) => (
                                 <li key={p.name} className={`player-item ${p.isReady ? 'ready' : ''}`}>
-                                    {p.name} {p.isHost ? "👑" : ""}
+                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                        {p.name}
+                                        {p.isHost && <span title="Host">👑</span>}
+                                        {!p.isGuest && (
+                                            <span
+                                                title="Registered account"
+                                                style={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    width: "16px",
+                                                    height: "16px",
+                                                    borderRadius: "50%",
+                                                    backgroundColor: "#22c55e",
+                                                    color: "#fff",
+                                                    fontSize: "10px",
+                                                    fontWeight: "bold",
+                                                    flexShrink: 0,
+                                                    lineHeight: 1,
+                                                }}
+                                            >
+                                                ✓
+                                            </span>
+                                        )}
+                                    </span>
                                 </li>
                             ))}
                         </ul>
