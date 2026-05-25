@@ -15,7 +15,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
 
     // Profile Tabs: 'stats', 'achievements', 'friends'
     const [activeTab, setActiveTab] = useState("stats");
-    
+
     // Graph mock state
     const [selectedStat, setSelectedStat] = useState("gamesPlayed"); // gamesPlayed, xp, wins
     const [timeframe, setTimeframe] = useState("weekly"); // daily, weekly, monthly
@@ -166,6 +166,24 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
         return dt.toLocaleDateString();
     };
 
+    const getFriendStats = (friend) => {
+        const gamesPlayed = Number(friend?.gamesPlayed) || 0;
+        const gamesWon = Number(friend?.gamesWon) || 0;
+        const correctGuesses = Number(friend?.correctGuesses) || 0;
+        const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
+
+        return {
+            gamesPlayed,
+            gamesWon,
+            correctGuesses,
+            winRate,
+        };
+    };
+
+    const openFriendDetails = (friend) => {
+        setSelectedFriend(friend);
+    };
+
     useEffect(() => {
         if (isOpen) {
             fetchMe();
@@ -188,7 +206,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
         try {
             const res = await api.post("auth/register", { name, email, password });
             setUser(res.data);
-            onAuthChange(res.data);  
+            onAuthChange(res.data);
             setName("");
             setEmail("");
             setPassword("");
@@ -201,7 +219,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
         try {
             const res = await api.post("auth/login", { email, password });
             setUser(res.data);
-            onAuthChange(res.data);  
+            onAuthChange(res.data);
             setEmail("");
             setPassword("");
         } catch (err) {
@@ -265,7 +283,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
 
     return (
         <div className="profile-modal-overlay" onClick={onClose}>
-            <div 
+            <div
                 className="profile-modal"
                 onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
             >
@@ -282,13 +300,13 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                 You are playing as a Guest ({user.name}). Register to save stats and unlock achievements!
                             </p>
                         )}
-                        <div className="tab-toggle" style={{ display: "flex", justifyContent:"center", gap: "20px", marginBottom: "20px" }}>
+                        <div className="tab-toggle" style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "20px" }}>
                             <label style={{ cursor: "pointer", color: !isRegistering ? colors.primary : "var(--color-text)" }}>
-                                <input type="radio" checked={!isRegistering} onChange={() => setIsRegistering(false)} style={{ display: "none"}} /> 
+                                <input type="radio" checked={!isRegistering} onChange={() => setIsRegistering(false)} style={{ display: "none" }} />
                                 <span style={{ fontWeight: !isRegistering ? "bold" : "normal", textDecoration: !isRegistering ? "underline" : "none", fontSize: "1.2rem" }}>Login</span>
                             </label>
                             <label style={{ cursor: "pointer", color: isRegistering ? colors.primary : "var(--color-text)" }}>
-                                <input type="radio" checked={isRegistering} onChange={() => setIsRegistering(true)} style={{ display: "none"}} /> 
+                                <input type="radio" checked={isRegistering} onChange={() => setIsRegistering(true)} style={{ display: "none" }} />
                                 <span style={{ fontWeight: isRegistering ? "bold" : "normal", textDecoration: isRegistering ? "underline" : "none", fontSize: "1.2rem" }}>Register</span>
                             </label>
                         </div>
@@ -311,9 +329,9 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                     // LOGGED IN USER PROFILE
                     <>
                         <div className="profile-tabs">
-                            <div 
-                                className="profile-tab" 
-                                style={{ 
+                            <div
+                                className="profile-tab"
+                                style={{
                                     color: activeTab === "stats" ? colors.primary : "var(--color-text)",
                                     borderBottomColor: activeTab === "stats" ? colors.primary : "transparent"
                                 }}
@@ -321,9 +339,9 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                             >
                                 <FaChartBar style={{ marginRight: 5 }} /> Stats
                             </div>
-                            <div 
+                            <div
                                 className="profile-tab"
-                                style={{ 
+                                style={{
                                     color: activeTab === "achievements" ? colors.primary : "var(--color-text)",
                                     borderBottomColor: activeTab === "achievements" ? colors.primary : "transparent"
                                 }}
@@ -331,9 +349,9 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                             >
                                 <FaTrophy style={{ marginRight: 5 }} /> Achievements
                             </div>
-                            <div 
+                            <div
                                 className="profile-tab"
-                                style={{ 
+                                style={{
                                     color: activeTab === "friends" ? colors.primary : "var(--color-text)",
                                     borderBottomColor: activeTab === "friends" ? colors.primary : "transparent"
                                 }}
@@ -379,20 +397,21 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                 const heightPerc = Math.max(10, Math.floor((val / maxVal) * 100));
                                                 // Create labels based on timeframe length
                                                 let label = "";
-                                                if (timeframe === "daily") label = ["M","T","W","T","F","S","S"][idx];
-                                                if (timeframe === "weekly") label = `W${idx+1}`;
-                                                if (timeframe === "monthly") label = ["Jan","Feb","Mar","Apr","May","Jun"][idx];
+                                                if (timeframe === "daily") label = ["M", "T", "W", "T", "F", "S", "S"][idx];
+                                                if (timeframe === "weekly") label = `W${idx + 1}`;
+                                                if (timeframe === "monthly") label = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"][idx];
 
                                                 return (
-                                                <div key={idx} className="chart-bar-wrapper">
-                                                    <div 
-                                                        className="chart-bar" 
-                                                        style={{ height: `${heightPerc}%`, color: colors.primary }}
-                                                        title={`${val} ${selectedStat}`}
-                                                    ></div>
-                                                    <span className="chart-label">{label}</span>
-                                                </div>
-                                            )})}
+                                                    <div key={idx} className="chart-bar-wrapper">
+                                                        <div
+                                                            className="chart-bar"
+                                                            style={{ height: `${heightPerc}%`, color: colors.primary }}
+                                                            title={`${val} ${selectedStat}`}
+                                                        ></div>
+                                                        <span className="chart-label">{label}</span>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
 
                                         <div className="stat-toggles">
@@ -543,16 +562,16 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                     <div className="achievements-grid">
                                         {Object.entries(user.achievements || {}).map(([id, unlocked]) => {
                                             const displayNames = {
-                                                ArtisticRookie:  "Artistic Rookie",
-                                                QuickDraw:       "Quick Draw",
-                                                Centurion:       "Centurion",
-                                                Master:          "Master",
-                                                TheGrandmaster:  "The Grandmaster",
-                                                MindReader:      "Mind Reader",
-                                                ArtisticSoul:    "Artistic Soul",
+                                                ArtisticRookie: "Artistic Rookie",
+                                                QuickDraw: "Quick Draw",
+                                                Centurion: "Centurion",
+                                                Master: "Master",
+                                                TheGrandmaster: "The Grandmaster",
+                                                MindReader: "Mind Reader",
+                                                ArtisticSoul: "Artistic Soul",
                                             };
                                             const isEquipped = user.equippedTitle === displayNames[id];
-                                            
+
                                             // Optional icons for fun
                                             let Icon = FaTrophy;
                                             if (!unlocked) Icon = FaLock;
