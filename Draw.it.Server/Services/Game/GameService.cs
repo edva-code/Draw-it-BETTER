@@ -72,7 +72,7 @@ public class GameService : IGameService
         return added;
     }
 
-    public void AddGuessedPlayer(string roomId, long userId, out bool turnEnded, out bool roundEnded, out bool gameEnded)
+    public void AddGuessedPlayer(string roomId, long userId, bool isFastGuess, out bool turnEnded, out bool roundEnded, out bool gameEnded)
     {
         var game = GetGame(roomId);
         turnEnded = roundEnded = gameEnded = false;
@@ -89,6 +89,11 @@ public class GameService : IGameService
         // Update scores
         if (!game.CorrectGuesses.TryAdd(userId, 1))
             game.CorrectGuesses[userId] += 1;
+        if (isFastGuess)
+        {
+            if (!game.FastGuesses.TryAdd(userId, 1))
+                game.FastGuesses[userId] += 1;
+        }
         if (!game.RoundScores.TryAdd(userId, points))
             game.RoundScores[userId] += points;
 

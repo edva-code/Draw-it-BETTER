@@ -8,6 +8,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<RoomModel> Rooms => Set<RoomModel>();
     public DbSet<UserModel> Users => Set<UserModel>();
+    public DbSet<FriendshipModel> Friendships { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,40 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasColumnName("name")
                 .HasMaxLength(128);
 
+            entity.Property(u => u.Email)
+                .HasColumnName("email")
+                .HasMaxLength(255)
+                .IsRequired(false);
+
+            entity.Property(u => u.PasswordHash)
+                .HasColumnName("password_hash")
+                .HasMaxLength(255)
+                .IsRequired(false);
+
+            entity.Property(u => u.TotalScore)
+                .HasColumnName("total_score")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.GamesPlayed)
+                .HasColumnName("games_played")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.GamesWon)
+                .HasColumnName("games_won")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.CorrectGuesses)
+                .HasColumnName("correct_guesses")
+                .HasDefaultValue(0);
+
+            entity.Property(u => u.FastGuesses)
+                .HasColumnName("fast_guesses")
+                .HasDefaultValue(0);
+
+            entity.Ignore(u => u.IsGuest);
+
+            entity.HasIndex(u => u.Email).IsUnique();
+
             entity.Property(u => u.RoomId)
                 .HasColumnName("room_id")
                 .HasMaxLength(16)
@@ -71,6 +106,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             entity.Property(u => u.IsAi)
                 .HasColumnName("is_ai");
+
+            entity.Property(u => u.LastSeenAt)
+                .HasColumnName("last_seen_at")
+                .IsRequired(false);
 
             entity.HasOne<RoomModel>()
                 .WithMany()

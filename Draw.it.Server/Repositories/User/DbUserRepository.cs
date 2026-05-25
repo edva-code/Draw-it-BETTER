@@ -73,6 +73,25 @@ public class DbUserRepository(ApplicationDbContext context) : IUserRepository
     {
         return context.Users.First(u => u.RoomId == roomId && u.IsAi);
     }
+
+    public UserModel? FindByEmail(string email)
+    {
+        return context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
+    }
+
+    public IEnumerable<UserModel> SearchByName(string partialName)
+    {
+        partialName = partialName.ToLower();
+        return context.Users.AsNoTracking()
+            .Where(u => u.Name.ToLower().Contains(partialName) && !u.IsAi)
+            .ToList();
+    }
+
+    public UserModel? FindByName(string name)
+    {
+        return context.Users.AsNoTracking()
+            .FirstOrDefault(u => u.Name.ToLower() == name.ToLower() && !u.IsAi);
+    }
 }
 
 

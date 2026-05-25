@@ -10,6 +10,7 @@ public static class ServiceDependencyInjection
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IFriendService, FriendService>();
         services.AddScoped<IRoomService, RoomService>();
         services.AddScoped<IWordPoolService, WordPoolService>();
         services.AddScoped<IGameService, GameService>();

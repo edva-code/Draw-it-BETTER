@@ -5,7 +5,10 @@ namespace Draw.it.Server.Services.User;
 public interface IUserService
 {
     UserModel CreateUser(string name);
+    UserModel RegisterUser(string name, string email, string password);
+    UserModel LoginUser(string email, string password);
     void DeleteUser(long userId);
+    void SaveUser(UserModel user);
     UserModel GetUser(long userId);
     void SetRoom(long userId, string? roomId);
     void SetConnectedStatus(long userId, bool isConnected);
@@ -14,4 +17,6 @@ public interface IUserService
     void UpdateName(long userId, string newName);
     void CreateAiUser(string roomId);
     UserModel GetAiUserInRoom(string roomId);
+    void ApplyGameResults(IEnumerable<UserModel> players, Dictionary<long, int> totalScores,
+        Dictionary<long, int> correctGuesses, Dictionary<long, int> fastGuesses);
 }

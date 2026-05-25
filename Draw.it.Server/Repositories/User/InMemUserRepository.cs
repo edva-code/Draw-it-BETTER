@@ -53,4 +53,24 @@ public class InMemUserRepository : IUserRepository
     {
         return _users.Values.First(u => u.RoomId == roomId && u.IsAi);
     }
+
+    public UserModel? FindByEmail(string email)
+    {
+        return _users.Values.FirstOrDefault(u => u.Email == email);
+    }
+
+    public UserModel? FindByName(string name)
+    {
+        return _users.Values.FirstOrDefault(u =>
+            string.Equals(u.Name, name, StringComparison.OrdinalIgnoreCase) && !u.IsAi);
+    }
+
+    public IEnumerable<UserModel> SearchByName(string partialName)
+    {
+        partialName = partialName.ToLowerInvariant();
+        return _users.Values
+            .Where(u => u.Name.ToLowerInvariant().Contains(partialName) && !u.IsAi)
+            .ToList();
+    }
+
 }

@@ -1,16 +1,35 @@
 ﻿import "./Index.css"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import api from "@/utils/api.js";
 import colors from "@/constants/colors.js";
 import Input from "@/components/input/Input.jsx"
 import Button from "@/components/button/Button.jsx";
 import Modal from "@/components/modal/Modal.jsx";
+import ProfileModal from "@/components/profile/ProfileModal.jsx";
+import { FaUserCircle } from "react-icons/fa";
 
 function Index() {
     const [nameInputText, setNameInputText] = useState("");
     const [roomCodeInputText, setRoomCodeInputText] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const res = await api.get("auth/me");
+                if (res.status === 200 && res.data) {
+                    setNameInputText(res.data.name);
+                    setIsLoggedIn(true);
+                }
+            } catch {
+                setIsLoggedIn(false);
+            }
+        };
+        fetchMe();
+    }, []);
 
     const navigate = useNavigate();
 
@@ -24,17 +43,10 @@ function Index() {
             if (meResponse.status === 200) {
                 userData = meResponse.data;
             }
-        } catch (err) {}
+        } catch (err) { }
 
         if (userData) {
-            try {
-                await api.post("user/new-name", { name: name });
-
-                return userData;
-            } catch (err) {
-                console.error("Error updating user name:", err);
-                throw err;
-            }
+            return userData;
         }
 
         // Create user
@@ -42,7 +54,7 @@ function Index() {
             const joinResponse = await api.post("auth/join", {
                 name: name
             });
-            
+
             if (joinResponse.status === 201) {
                 return joinResponse.data;
             }
@@ -85,17 +97,59 @@ function Index() {
             alert(err.response?.data?.error || "Could not create room. Please try again.");
         }
     }
-    
+
+    //for smooth updating of user info in sidebar after login/logout without needing to refresh the page
+    const handleAuthChange = (userData) => {
+        if (userData) {
+            setNameInputText(userData.name);
+            setIsLoggedIn(true);
+        } else {
+            // Logout
+            setNameInputText("");
+            setIsLoggedIn(false);
+        }
+    };
+
+
     return (
         <div className="index-container">
+            <ProfileModal
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                onAuthChange={handleAuthChange}
+            />
+
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "20px",
+                    cursor: "pointer",
+                    opacity: sidebarOpen ? 0 : 1,
+                    pointerEvents: sidebarOpen ? "none" : "auto",
+                    transition: "opacity 0.3s ease-in-out"
+                }}
+                onClick={() => setSidebarOpen(true)}
+            >
+                <FaUserCircle size={40} color={colors.primary} />
+            </div>
+
             <h1 id="app-title">
                 Draw <span className="highlight" style={{ backgroundColor: colors.primary, color: colors.secondaryDark }}>.it</span>
             </h1>
 
             <div className="action-container">
-                <Input value={nameInputText} 
-                       onChange={(e) => setNameInputText(e.target.value)} 
-                       placeholder="Enter name"
+                <Input
+                    value={nameInputText}
+                    onChange={(e) => {
+                        if (!isLoggedIn) {
+                            const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+                            setNameInputText(sanitized);
+                        }
+                    }}
+                    placeholder="Enter name"
+                    disabled={isLoggedIn}
+                    maxLength={20}
                 />
 
                 <div className="action-button-container">
@@ -106,7 +160,7 @@ function Index() {
                 <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
                     <div className="modal-container">
                         <h1>Enter room code</h1>
-                        <Input value={roomCodeInputText} placeholder="12..." onChange={(e) => setRoomCodeInputText(e.target.value)}/>
+                        <Input value={roomCodeInputText} placeholder="12..." onChange={(e) => setRoomCodeInputText(e.target.value)} />
                         <Button onClick={() => roomCodeInputText.trim() ? joinRoomAndNavigate(nameInputText, roomCodeInputText) : alert("Room code is required")}>Join</Button>
                     </div>
                 </Modal>

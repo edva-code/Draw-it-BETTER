@@ -18,21 +18,19 @@ public static class RepositoryDependencyInjection
         if (repoType == nameof(RepoType.InMem))
         {
             services.AddSingleton<IUserRepository, InMemUserRepository>();
+            services.AddSingleton<IFriendshipRepository, FriendshipRepository>();
             services.AddSingleton<IRoomRepository, InMemRoomRepository>();
             services.AddSingleton<IWordPoolRepository, FileStreamWordPoolRepository>();
             services.AddSingleton<IGameRepository, InMemGameRepository>();
         }
         else
         {
-            // Use DB-backed repositories
             services.AddScoped<IUserRepository, DbUserRepository>();
+            services.AddScoped<IFriendshipRepository, DbFriendshipRepository>();
             services.AddScoped<IRoomRepository, DbRoomRepository>();
-
-            // Keep existing singletons
             services.AddSingleton<IWordPoolRepository, FileStreamWordPoolRepository>();
             services.AddSingleton<IGameRepository, InMemGameRepository>();
         }
-
         return services;
     }
 }

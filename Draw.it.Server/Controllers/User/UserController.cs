@@ -31,10 +31,6 @@ public class UserController : ControllerBase
     [HttpPost("new-name")]
     public IActionResult UpdateName([FromBody] UpdateNameRequestDto request)
     {
-        var userId = HttpContext.ResolveUserId();
-
-        _userService.UpdateName(userId, request.name);
-
-        return NoContent();
+        return BadRequest(new { error = "You cannot change your username." });
     }
 }

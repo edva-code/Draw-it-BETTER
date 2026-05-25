@@ -1,4 +1,7 @@
-﻿namespace Draw.it.Server.Hubs.DTO;
+﻿using Draw.it.Server.Models.User;
+using Draw.it.Server.Services.Achievement;
+
+namespace Draw.it.Server.Hubs.DTO;
 
 public record PlayerStatusDto(
     long Id,
@@ -6,5 +9,7 @@ public record PlayerStatusDto(
     int Score,
     bool IsDrawer,
     bool HasGuessed,
-    bool IsHost
+    bool IsHost,
+    bool IsGuest,
+    string? EquippedTitle
 );

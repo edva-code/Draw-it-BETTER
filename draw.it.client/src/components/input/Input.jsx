@@ -2,7 +2,7 @@
 import "./Input.css";
 import colors from "@/constants/colors.js";
 
-export default function Input({ type = "text", value, onChange, placeholder }) {
+export default function Input({ type = "text", value, onChange, placeholder, disabled = false }) {
     return (
         <input
             className="input"
@@ -10,7 +10,12 @@ export default function Input({ type = "text", value, onChange, placeholder }) {
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            style={{ borderColor: colors.secondaryDark }}
+            disabled={disabled}
+            style={{ 
+                borderColor: colors.secondaryDark, 
+                opacity: disabled ? 0.6 : 1,
+                cursor: disabled ? 'not-allowed' : 'text'
+            }}
         />
     );
 }
