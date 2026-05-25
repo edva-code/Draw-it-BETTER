@@ -13,7 +13,8 @@ public record AuthMeResponseDto(
     int CorrectGuesses,
     int FastGuesses,
     Dictionary<string, bool> Achievements,  // achievementId -> unlocked
-    string? EquippedTitle                   // display name of equipped title, or null
+    string? EquippedTitle,
+    DateTime CreatedAt
 )
 {
     public AuthMeResponseDto(UserModel user) : this(
@@ -28,7 +29,8 @@ public record AuthMeResponseDto(
         BuildAchievements(user),
         user.EquippedTitle.HasValue
             ? AchievementService.GetDisplayName(user.EquippedTitle.Value)
-            : null
+            : null,
+        user.CreatedAt
     )
     { }
 
