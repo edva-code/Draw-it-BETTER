@@ -26,6 +26,8 @@ public class FriendService : IFriendService
     public void SendFriendRequest(long requesterId, string targetUsername)
     {
         targetUsername = targetUsername.Trim();
+        if (string.IsNullOrWhiteSpace(targetUsername))
+            throw new AppException("Username cannot be empty", System.Net.HttpStatusCode.BadRequest);
 
         var requester = _userRepo.FindById(requesterId)
             ?? throw new EntityNotFoundException($"Requester {requesterId} not found");
@@ -155,6 +157,37 @@ public class FriendService : IFriendService
             .ToList();
     }
 
+    public IEnumerable<SearchUserDto> SearchUsers(long requesterId, string partialName)
+    {
+        var requester = _userRepo.FindById(requesterId)
+            ?? throw new EntityNotFoundException($"Requester {requesterId} not found");
+
+        if (requester.IsGuest)
+            throw new AppException("Guests cannot search users", System.Net.HttpStatusCode.Forbidden);
+
+        var candidates = _userRepo.SearchByName(partialName)
+            .Where(u => u.Id != requesterId && !u.IsGuest)
+            .ToList();
+
+        return candidates.Select(user =>
+        {
+            var accepted = _friendshipRepo.FindAccepted(requesterId, user.Id);
+            var myPending = _friendshipRepo.FindPending(requesterId, user.Id);
+            var theirPending = _friendshipRepo.FindPending(user.Id, requesterId);
+
+            return new SearchUserDto(
+                UserId: user.Id,
+                Username: user.Name,
+                IsOnline: IsUserOnline(user),
+                LastSeenAt: user.LastSeenAt,
+                IsFriend: accepted != null,
+                HasPendingRequestFromMe: myPending != null,
+                HasPendingRequestToMe: theirPending != null,
+                PendingFriendshipId: theirPending?.Id
+            );
+        }).ToList();
+    }
+
     public UserProfileDto GetFriendProfile(long requestingUserId, long targetUserId)
     {
         var target = _userRepo.FindById(targetUserId)
@@ -163,18 +196,20 @@ public class FriendService : IFriendService
         var accepted = _friendshipRepo.FindAccepted(requestingUserId, targetUserId);
         var myPending = _friendshipRepo.FindPending(requestingUserId, targetUserId);
         var theirPending = _friendshipRepo.FindPending(targetUserId, requestingUserId);
+        var isSelf = requestingUserId == targetUserId;
+        var isFriend = accepted != null || isSelf;
 
         return new UserProfileDto(
             UserId: target.Id,
             Username: target.Name,
             IsOnline: IsUserOnline(target),
             LastSeenAt: target.LastSeenAt,
-            TotalScore: target.TotalScore,
-            GamesPlayed: target.GamesPlayed,
-            GamesWon: target.GamesWon,
-            CorrectGuesses: target.CorrectGuesses,
-            FastGuesses: target.FastGuesses,
-            IsFriend: accepted != null,
+            TotalScore: isFriend ? target.TotalScore : 0,
+            GamesPlayed: isFriend ? target.GamesPlayed : 0,
+            GamesWon: isFriend ? target.GamesWon : 0,
+            CorrectGuesses: isFriend ? target.CorrectGuesses : 0,
+            FastGuesses: isFriend ? target.FastGuesses : 0,
+            IsFriend: isFriend,
             HasPendingRequestFromMe: myPending != null,
             HasPendingRequestToMe: theirPending != null,
             PendingFriendshipId: theirPending?.Id

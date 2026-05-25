@@ -18,6 +18,7 @@ public static class RepositoryDependencyInjection
         if (repoType == nameof(RepoType.InMem))
         {
             services.AddSingleton<IUserRepository, InMemUserRepository>();
+            services.AddSingleton<IFriendshipRepository, FriendshipRepository>();
             services.AddSingleton<IRoomRepository, InMemRoomRepository>();
             services.AddSingleton<IWordPoolRepository, FileStreamWordPoolRepository>();
             services.AddSingleton<IGameRepository, InMemGameRepository>();
@@ -26,6 +27,7 @@ public static class RepositoryDependencyInjection
         {
             // Use DB-backed repositories
             services.AddScoped<IUserRepository, DbUserRepository>();
+            services.AddSingleton<IFriendshipRepository, FriendshipRepository>();
             services.AddScoped<IRoomRepository, DbRoomRepository>();
 
             // Keep existing singletons

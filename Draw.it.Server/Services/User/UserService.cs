@@ -156,6 +156,10 @@ public class UserService : IUserService
     {
         var user = GetUser(userId);
         user.IsConnected = isConnected;
+        if (!isConnected)
+        {
+            user.LastSeenAt = DateTime.UtcNow;
+        }
         _userRepository.Save(user);
     }
 

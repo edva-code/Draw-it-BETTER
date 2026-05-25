@@ -10,6 +10,7 @@ public interface IFriendService
     void RemoveFriend(long userId, long friendId);
     IEnumerable<FriendDto> GetFriends(long userId);
     IEnumerable<PendingRequestDto> GetPendingRequests(long userId);
+    IEnumerable<SearchUserDto> SearchUsers(long requesterId, string partialName);
     UserProfileDto GetFriendProfile(long requestingUserId, long targetUserId);
     bool AreFriends(long userAId, long userBId);
 }
@@ -32,6 +33,17 @@ public record PendingRequestDto(
     long RequesterId,
     string RequesterUsername,
     DateTime SentAt
+);
+
+public record SearchUserDto(
+    long UserId,
+    string Username,
+    bool IsOnline,
+    DateTime? LastSeenAt,
+    bool IsFriend,
+    bool HasPendingRequestFromMe,
+    bool HasPendingRequestToMe,
+    long? PendingFriendshipId
 );
 
 public record UserProfileDto(
