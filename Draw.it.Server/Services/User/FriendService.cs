@@ -1,6 +1,7 @@
 using Draw.it.Server.Exceptions;
 using Draw.it.Server.Models.User;
 using Draw.it.Server.Repositories.User;
+using Draw.it.Server.Services.Achievement;
 
 namespace Draw.it.Server.Services.User;
 
@@ -133,7 +134,10 @@ public class FriendService : IFriendService
                 TotalScore: friend.TotalScore,
                 GamesPlayed: friend.GamesPlayed,
                 GamesWon: friend.GamesWon,
-                CurrentRoomId: friend.RoomId   // populated = in a match
+                CurrentRoomId: friend.RoomId,
+                EquippedTitle: friend.EquippedTitle.HasValue
+                    ? AchievementService.GetDisplayName(friend.EquippedTitle.Value)
+                    : null
             ));
         }
         return result;
@@ -183,7 +187,10 @@ public class FriendService : IFriendService
                 IsFriend: accepted != null,
                 HasPendingRequestFromMe: myPending != null,
                 HasPendingRequestToMe: theirPending != null,
-                PendingFriendshipId: theirPending?.Id
+                PendingFriendshipId: theirPending?.Id,
+                EquippedTitle: user.EquippedTitle.HasValue
+                    ? AchievementService.GetDisplayName(user.EquippedTitle.Value)
+                    : null
             );
         }).ToList();
     }
