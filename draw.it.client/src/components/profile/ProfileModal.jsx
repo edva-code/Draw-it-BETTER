@@ -489,7 +489,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                                         <span className="status-dot offline" />
                                                                     </div>
 
-                                                                    <div>
+                                                                    <div className="friend-text-block">
                                                                         <div className="friend-name">{req.requesterUsername}</div>
                                                                         <div className="friend-sub">Sent {formatLastSeen(req.sentAt)}</div>
                                                                     </div>
@@ -559,8 +559,13 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                                             <span className={`status-dot ${friend.isOnline ? "online" : "offline"}`} />
                                                                         </div>
 
-                                                                        <div>
-                                                                            <div className="friend-name">{friend.username}</div>
+                                                                        <div className="friend-text-block">
+                                                                            <div className="friend-name">
+                                                                                {friend.username}
+                                                                                {friend.equippedTitle && (
+                                                                                    <span className="friend-inline-title">{friend.equippedTitle}</span>
+                                                                                )}
+                                                                            </div>
                                                                             <div className="friend-sub">
                                                                                 {friend.isOnline ? "Online now" : `Last seen ${formatLastSeen(friend.lastSeenAt)}`}
                                                                             </div>
@@ -637,8 +642,13 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                                         <span className={`status-dot ${result.isOnline ? "online" : "offline"}`} />
                                                                     </div>
 
-                                                                    <div>
-                                                                        <div className="friend-name">{result.username}</div>
+                                                                    <div className="friend-text-block">
+                                                                        <div className="friend-name">
+                                                                            {result.username}
+                                                                            {result.equippedTitle && (
+                                                                                <span className="friend-inline-title">{result.equippedTitle}</span>
+                                                                            )}
+                                                                        </div>
                                                                         <div className="friend-sub">
                                                                             {result.isOnline ? "Online now" : `Last seen ${formatLastSeen(result.lastSeenAt)}`}
                                                                         </div>
