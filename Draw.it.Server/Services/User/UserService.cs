@@ -27,6 +27,17 @@ public class UserService : IUserService
         {
             throw new AppException("User name cannot be empty", System.Net.HttpStatusCode.BadRequest);
         }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9]+$"))
+        {
+            throw new AppException("Name can only contain letters and numbers", System.Net.HttpStatusCode.BadRequest);
+        }
+
+        if (name.Length > 20)
+        {
+            throw new AppException("Name cannot exceed 20 characters", System.Net.HttpStatusCode.BadRequest);
+        }
+
         var user = new UserModel
         {
             Id = _userRepository.GetNextId(),
@@ -48,6 +59,16 @@ public class UserService : IUserService
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
             throw new AppException("Name, email and password are required", System.Net.HttpStatusCode.BadRequest);
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9]+$"))
+        {
+            throw new AppException("Name can only contain letters and numbers", System.Net.HttpStatusCode.BadRequest);
+        }
+
+        if (name.Length < 2 || name.Length > 20)
+        {
+            throw new AppException("Name must be between 2 and 20 characters", System.Net.HttpStatusCode.BadRequest);
         }
 
         if (_userRepository.FindByEmail(email) != null)
