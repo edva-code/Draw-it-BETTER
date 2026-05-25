@@ -201,6 +201,9 @@
     gap: 8px;
     height: 150px; /* bar zone only */
     position: relative;
+    padding-left: 12px;
+    padding-bottom: 24px;
+    overflow: visible;
 }
 
 /* Grid lines — 3 horizontal lines at 33%, 66%, 100% from bottom */
