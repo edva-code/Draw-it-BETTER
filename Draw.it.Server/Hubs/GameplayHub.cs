@@ -8,6 +8,7 @@ using Draw.it.Server.Services.Room;
 using Draw.it.Server.Services.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Draw.it.Server.Services.Achievement;
 
 namespace Draw.it.Server.Hubs;
 
@@ -328,7 +329,11 @@ public class GameplayHub : BaseHub<GameplayHub>
                 Score: currentScore,
                 IsDrawer: user.Id == drawerId,
                 HasGuessed: game.GuessedPlayersIds.Contains(user.Id),
-                IsHost: _roomService.IsHost(roomId, user)
+                IsHost: _roomService.IsHost(roomId, user),
+                IsGuest: user.IsGuest,                    // ← ADD
+                EquippedTitle: user.EquippedTitle.HasValue // ← ADD
+                    ? AchievementService.GetDisplayName(user.EquippedTitle.Value)
+                    : null
             );
         }).OrderByDescending(p => p.Score).ToList();
 
