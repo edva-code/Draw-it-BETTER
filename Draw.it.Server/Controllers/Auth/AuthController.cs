@@ -109,6 +109,35 @@ public class AuthController : ControllerBase
         return Ok(new AuthMeResponseDto(user));
     }
 
+    /// Endpoint to equip an achievement title
+    /// Client sends the achievement ID they want to equip, or null to unequip. Server verifies ownership and updates user.
+
+    [HttpPost("equip-title")]
+    public IActionResult EquipTitle([FromBody] EquipTitleRequestDto request)
+    {
+        var user = HttpContext.ResolveUser(_userService);
+
+        // Null = unequip
+        if (request.AchievementId == null)
+        {
+            user.EquippedTitle = null;
+            _userService.SaveUser(user);
+            return Ok();
+        }
+
+        if (!Enum.TryParse<AchievementId>(request.AchievementId, out var achievementId))
+            return BadRequest(new { error = "Invalid achievement ID" });
+
+        // Verify user actually unlocked it — never trust the client
+        var unlocked = AchievementService.GetUnlocked(user);
+        if (!unlocked.Contains(achievementId))
+            return Forbid(); // 403 — they don't have it
+
+        user.EquippedTitle = achievementId;
+        _userService.SaveUser(user);
+        return Ok();
+    }
+
     /// <summary>
     /// Logs out and clears cookie
     /// </summary>
