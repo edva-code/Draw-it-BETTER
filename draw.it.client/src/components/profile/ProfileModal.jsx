@@ -427,47 +427,215 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                         </div>
                                     ) : (
                                         <>
+                                            {friendsError && (
+                                                <div className="friends-error">
+                                                    <span>{friendsError}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="friends-error-close"
+                                                        onClick={() => setFriendsError("")}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            )}
+
                                             <div className="friends-section">
-                                                <h4>Find Friends</h4>
+                                                <div className="friends-section-header">
+                                                    <h4>Friend Requests</h4>
+                                                    <span className="friends-section-count">{friendRequests.length}</span>
+                                                </div>
+
+                                                {friendRequests.length === 0 ? (
+                                                    <div className="friends-empty">No pending requests.</div>
+                                                ) : (
+                                                    <div className="friends-list">
+                                                        {friendRequests.map((req) => (
+                                                            <div key={req.friendshipId} className="friend-card">
+                                                                <div className="friend-meta">
+                                                                    <div className="friend-avatar-wrap">
+                                                                        <div
+                                                                            className="friend-avatar-sm"
+                                                                            style={getAvatarStyle(req.requesterUsername)}
+                                                                        >
+                                                                            {getAvatarInitials(req.requesterUsername)}
+                                                                        </div>
+                                                                        <span className="status-dot offline" />
+                                                                    </div>
+
+                                                                    <div>
+                                                                        <div className="friend-name">{req.requesterUsername}</div>
+                                                                        <div className="friend-sub">Sent {formatLastSeen(req.sentAt)}</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="friend-actions">
+                                                                    <Button onClick={() => acceptFriendRequest(req.friendshipId)}>Accept</Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        onClick={() => declineFriendRequest(req.friendshipId)}
+                                                                    >
+                                                                        Decline
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="friends-section">
+                                                <div className="friends-section-header">
+                                                    <h4>Your Friends</h4>
+                                                    <span className="friends-section-count">{friends.length}</span>
+                                                </div>
+
+                                                {friendsLoading ? (
+                                                    <div className="friends-list">
+                                                        {[1, 2, 3].map((item) => (
+                                                            <div key={item} className="friend-card skeleton-card">
+                                                                <div className="friend-meta">
+                                                                    <div className="skeleton skeleton-avatar-sm"></div>
+                                                                    <div className="friend-skeleton-text">
+                                                                        <div className="skeleton skeleton-line skeleton-line--lg"></div>
+                                                                        <div className="skeleton skeleton-line skeleton-line--sm"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : friends.length === 0 ? (
+                                                    <div className="friends-empty friends-empty-cta">
+                                                        <div className="friends-empty-icon">👥</div>
+                                                        <div className="friends-empty-title">No friends yet</div>
+                                                        <div className="friends-empty-subtitle">
+                                                            Search for players below and send your first friend request.
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="friends-list">
+                                                        {friends.map((friend) => {
+                                                            const stats = getFriendStats(friend);
+                                                            return (
+                                                                <div
+                                                                    key={friend.userId}
+                                                                    className={`friend-card friend-card--interactive ${selectedFriend?.userId === friend.userId ? "friend-card--selected" : ""}`}
+                                                                    onClick={() => openFriendDetails(friend)}
+                                                                >
+                                                                    <div className="friend-meta">
+                                                                        <div className="friend-avatar-wrap">
+                                                                            <div
+                                                                                className="friend-avatar-sm"
+                                                                                style={getAvatarStyle(friend.username)}
+                                                                            >
+                                                                                {getAvatarInitials(friend.username)}
+                                                                            </div>
+                                                                            <span className={`status-dot ${friend.isOnline ? "online" : "offline"}`} />
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <div className="friend-name">{friend.username}</div>
+                                                                            <div className="friend-sub">
+                                                                                {friend.isOnline ? "Online now" : `Last seen ${formatLastSeen(friend.lastSeenAt)}`}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="friend-actions">
+                                                                        {friend.currentRoomId && (
+                                                                            <span className="friend-chip friend-chip--ingame">In Match</span>
+                                                                        )}
+                                                                        <Button
+                                                                            variant="danger"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                removeFriend(friend.userId);
+                                                                            }}
+                                                                        >
+                                                                            Remove
+                                                                        </Button>
+                                                                    </div>
+
+                                                                    <div className="friend-stats-preview">
+                                                                        <div className="friend-stat-preview-item">
+                                                                            <span className="friend-stat-preview-value">{stats.gamesPlayed}</span>
+                                                                            <span className="friend-stat-preview-label">Games</span>
+                                                                        </div>
+                                                                        <div className="friend-stat-preview-item">
+                                                                            <span className="friend-stat-preview-value">{stats.gamesWon}</span>
+                                                                            <span className="friend-stat-preview-label">Wins</span>
+                                                                        </div>
+                                                                        <div className="friend-stat-preview-item">
+                                                                            <span className="friend-stat-preview-value">{stats.winRate}%</span>
+                                                                            <span className="friend-stat-preview-label">Win rate</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="friends-section">
+                                                <div className="friends-section-header">
+                                                    <h4>Find Friends</h4>
+                                                </div>
+
                                                 <div className="friends-search">
                                                     <Input
                                                         value={searchQuery}
                                                         onChange={(e) => setSearchQuery(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                handleSearch();
+                                                            }
+                                                        }}
                                                         placeholder="Search username"
                                                     />
                                                     <Button onClick={handleSearch}>Search</Button>
                                                 </div>
-                                                {friendsError && (
-                                                    <div className="friends-error">{friendsError}</div>
-                                                )}
+
                                                 {searchResults.length > 0 && (
                                                     <div className="friends-list">
                                                         {searchResults.map((result) => (
                                                             <div key={result.userId} className="friend-card">
                                                                 <div className="friend-meta">
-                                                                    <span className={`status-dot ${result.isOnline ? "online" : "offline"}`} />
+                                                                    <div className="friend-avatar-wrap">
+                                                                        <div
+                                                                            className="friend-avatar-sm"
+                                                                            style={getAvatarStyle(result.username)}
+                                                                        >
+                                                                            {getAvatarInitials(result.username)}
+                                                                        </div>
+                                                                        <span className={`status-dot ${result.isOnline ? "online" : "offline"}`} />
+                                                                    </div>
+
                                                                     <div>
                                                                         <div className="friend-name">{result.username}</div>
                                                                         <div className="friend-sub">
-                                                                            {result.isOnline ? "Online" : `Last seen ${formatLastSeen(result.lastSeenAt)}`}
+                                                                            {result.isOnline ? "Online now" : `Last seen ${formatLastSeen(result.lastSeenAt)}`}
                                                                         </div>
                                                                     </div>
                                                                 </div>
+
                                                                 <div className="friend-actions">
                                                                     {result.isFriend ? (
-                                                                        <span className="friend-chip">Friend</span>
+                                                                        <span className="friend-chip friend-chip--confirmed">Friends</span>
                                                                     ) : result.hasPendingRequestToMe ? (
                                                                         <>
-                                                                            <Button onClick={() => result.pendingFriendshipId && acceptFriendRequest(result.pendingFriendshipId)}>Accept</Button>
-                                                                            <button
-                                                                                className="ghost-btn"
+                                                                            <Button onClick={() => result.pendingFriendshipId && acceptFriendRequest(result.pendingFriendshipId)}>
+                                                                                Accept
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="ghost"
                                                                                 onClick={() => result.pendingFriendshipId && declineFriendRequest(result.pendingFriendshipId)}
                                                                             >
                                                                                 Decline
-                                                                            </button>
+                                                                            </Button>
                                                                         </>
                                                                     ) : result.hasPendingRequestFromMe ? (
-                                                                        <span className="friend-chip muted">Request sent</span>
+                                                                        <span className="friend-chip friend-chip--pending">Request sent</span>
                                                                     ) : (
                                                                         <Button onClick={() => sendFriendRequest(result.username)}>Add</Button>
                                                                     )}
@@ -478,69 +646,55 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                 )}
                                             </div>
 
-                                            <div className="friends-section">
-                                                <h4>Friend Requests</h4>
-                                                {friendRequests.length === 0 ? (
-                                                    <div className="friends-empty">No pending requests.</div>
-                                                ) : (
-                                                    <div className="friends-list">
-                                                        {friendRequests.map((req) => (
-                                                            <div key={req.friendshipId} className="friend-card">
-                                                                <div className="friend-meta">
-                                                                    <span className="status-dot offline" />
-                                                                    <div>
-                                                                        <div className="friend-name">{req.requesterUsername}</div>
-                                                                        <div className="friend-sub">Sent {formatLastSeen(req.sentAt)}</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="friend-actions">
-                                                                    <Button onClick={() => acceptFriendRequest(req.friendshipId)}>Accept</Button>
-                                                                    <button
-                                                                        className="ghost-btn"
-                                                                        onClick={() => declineFriendRequest(req.friendshipId)}
-                                                                    >
-                                                                        Decline
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                            {selectedFriend && (
+                                                <div className="friends-section friend-details-panel">
+                                                    <div className="friends-section-header">
+                                                        <h4>Friend Stats</h4>
+                                                        <button
+                                                            type="button"
+                                                            className="friends-error-close"
+                                                            onClick={() => setSelectedFriend(null)}
+                                                        >
+                                                            ×
+                                                        </button>
                                                     </div>
-                                                )}
-                                            </div>
 
-                                            <div className="friends-section">
-                                                <h4>Your Friends</h4>
-                                                {friendsLoading ? (
-                                                    <div className="friends-empty">Loading friends...</div>
-                                                ) : friends.length === 0 ? (
-                                                    <div className="friends-empty">No friends yet.</div>
-                                                ) : (
-                                                    <div className="friends-list">
-                                                        {friends.map((friend) => (
-                                                            <div key={friend.userId} className="friend-card">
-                                                                <div className="friend-meta">
-                                                                    <span className={`status-dot ${friend.isOnline ? "online" : "offline"}`} />
-                                                                    <div>
-                                                                        <div className="friend-name">{friend.username}</div>
-                                                                        <div className="friend-sub">
-                                                                            {friend.isOnline ? "Online" : `Last seen ${formatLastSeen(friend.lastSeenAt)}`}
-                                                                            {friend.currentRoomId ? " • In match" : ""}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="friend-actions">
-                                                                    <button
-                                                                        className="ghost-btn"
-                                                                        onClick={() => removeFriend(friend.userId)}
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
+                                                    <div className="friend-details-header">
+                                                        <div
+                                                            className="user-avatar friend-details-avatar"
+                                                            style={getAvatarStyle(selectedFriend.username)}
+                                                        >
+                                                            {getAvatarInitials(selectedFriend.username)}
+                                                        </div>
+
+                                                        <div>
+                                                            <div className="friend-details-name">{selectedFriend.username}</div>
+                                                            <div className="friend-sub">
+                                                                {selectedFriend.isOnline ? "Online now" : `Last seen ${formatLastSeen(selectedFriend.lastSeenAt)}`}
                                                             </div>
-                                                        ))}
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
+
+                                                    <div className="friend-details-stats-grid">
+                                                        <div className="friend-details-stat-card">
+                                                            <span className="friend-details-stat-value">{getFriendStats(selectedFriend).gamesPlayed}</span>
+                                                            <span className="friend-details-stat-label">Games Played</span>
+                                                        </div>
+                                                        <div className="friend-details-stat-card">
+                                                            <span className="friend-details-stat-value">{getFriendStats(selectedFriend).gamesWon}</span>
+                                                            <span className="friend-details-stat-label">Wins</span>
+                                                        </div>
+                                                        <div className="friend-details-stat-card">
+                                                            <span className="friend-details-stat-value">{getFriendStats(selectedFriend).correctGuesses}</span>
+                                                            <span className="friend-details-stat-label">Correct Guesses</span>
+                                                        </div>
+                                                        <div className="friend-details-stat-card">
+                                                            <span className="friend-details-stat-value">{getFriendStats(selectedFriend).winRate}%</span>
+                                                            <span className="friend-details-stat-label">Win Rate</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>
