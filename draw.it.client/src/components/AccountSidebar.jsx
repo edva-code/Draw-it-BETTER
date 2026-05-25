@@ -67,6 +67,18 @@ function AccountSidebar({ isOpen, onClose, onAuthChange }) {
         }
     };
 
+    const handleEquipTitle = async (achievementId) => {
+    try {
+        await api.post("auth/equip-title", { achievementId });
+        // Refresh user data to update equippedTitle
+        const res = await api.get("auth/me");
+        setUser(res.data);
+        onAuthChange(res.data);
+    } catch (err) {
+        alert(err.response?.data?.error || "Failed to equip title");
+    }
+};
+
     return (
         <div className={`account-sidebar ${isOpen ? "open" : ""}`} style={{ backgroundColor: "var(--primary-bg)", borderColor: colors.secondaryDark }}>
             <div className="sidebar-header">
@@ -83,6 +95,61 @@ function AccountSidebar({ isOpen, onClose, onAuthChange }) {
                         <p><strong>Games Won:</strong> {user.gamesWon}</p>
                         <p><strong>Correct Guesses:</strong> {user.correctGuesses}</p>
                         <p><strong>Fast Guesses:</strong> {user.fastGuesses}</p>
+
+                        {/* --- Achievements --- */}
+                        <div style={{ marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "14px" }}>
+                            <strong style={{ display: "block", marginBottom: "10px", fontSize: "0.95rem" }}>
+                                Achievements
+                            </strong>
+                            {Object.entries(user.achievements || {}).map(([id, unlocked]) => {
+                                const displayNames = {
+                                    ArtisticRookie:  "Artistic Rookie",
+                                    QuickDraw:       "Quick Draw",
+                                    Centurion:       "Centurion",
+                                    Master:          "Master",
+                                    TheGrandmaster:  "The Grandmaster",
+                                    MindReader:      "Mind Reader",
+                                    ArtisticSoul:    "Artistic Soul",
+                                };
+                                const isEquipped = user.equippedTitle === displayNames[id];
+                                return (
+                                    <div
+                                        key={id}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "5px 0",
+                                            opacity: unlocked ? 1 : 0.35,
+                                        }}
+                                    >
+                                        <span style={{ fontSize: "0.88rem" }}>
+                                            {unlocked ? "🏆" : "🔒"} {displayNames[id]}
+                                        </span>
+                                        {unlocked && (
+                                            <button
+                                                onClick={() => handleEquipTitle(isEquipped ? null : id)}
+                                                style={{
+                                                    fontSize: "0.75rem",
+                                                    padding: "2px 8px",
+                                                    borderRadius: "999px",
+                                                    border: "1px solid",
+                                                    cursor: "pointer",
+                                                    backgroundColor: isEquipped ? colors.primary : "transparent",
+                                                    color: isEquipped ? "#fff" : colors.primary,
+                                                    borderColor: colors.primary,
+                                                    transition: "all 0.15s",
+                                                }}
+                                            >
+                                                {isEquipped ? "Equipped" : "Equip"}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+
                         <div className="sidebar-actions" style={{ marginTop: "20px" }}>
                             <Button onClick={handleLogout}>Logout</Button>
                         </div>
