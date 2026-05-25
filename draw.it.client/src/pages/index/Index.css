@@ -42,7 +42,7 @@
     align-items: center;
 }
 
-.button {
+.action-button-container .button {
     width: 40%;
 }
 
