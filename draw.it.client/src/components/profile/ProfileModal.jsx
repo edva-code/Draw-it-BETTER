@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "@/utils/api.js";
 import Input from "@/components/input/Input.jsx";
 import Button from "@/components/button/Button.jsx";
 import colors from "@/constants/colors.js";
 import "./ProfileModal.css";
-import { FaUserCircle, FaTrophy, FaChartBar, FaUserFriends, FaLock } from "react-icons/fa";
+import { FaTrophy, FaChartBar, FaUserFriends, FaLock } from "react-icons/fa";
 
 function ProfileModal({ isOpen, onClose, onAuthChange }) {
     const [user, setUser] = useState(null);
@@ -13,12 +13,51 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
     const [name, setName] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
 
-    // Profile Tabs: 'stats', 'achievements', 'social'
+    // Profile Tabs: 'stats', 'achievements', 'friends'
     const [activeTab, setActiveTab] = useState("stats");
     
     // Graph mock state
     const [selectedStat, setSelectedStat] = useState("gamesPlayed"); // gamesPlayed, xp, wins
     const [timeframe, setTimeframe] = useState("weekly"); // daily, weekly, monthly
+    const profileContentRef = useRef(null);
+
+    const getAvatarInitials = (value) => {
+        if (!value) return "?";
+        const parts = value.trim().split(/\s+/);
+        const initials = parts.slice(0, 2).map((part) => part[0]).join("");
+        return initials.toUpperCase();
+    };
+
+    const getAvatarStyle = (value) => {
+        if (!value) return { background: "var(--color-surface-hover)" };
+        const palette = [
+            ["#f97316", "#ef4444"],
+            ["#fb7185", "#f43f5e"],
+            ["#f59e0b", "#f97316"],
+            ["#34d399", "#10b981"],
+            ["#22d3ee", "#0ea5e9"],
+            ["#60a5fa", "#3b82f6"],
+            ["#a78bfa", "#8b5cf6"],
+            ["#f472b6", "#ec4899"],
+        ];
+        let hash = 0;
+        for (let i = 0; i < value.length; i += 1) {
+            hash = (hash * 31 + value.charCodeAt(i)) % 1000;
+        }
+        const [from, to] = palette[hash % palette.length];
+        return { background: `linear-gradient(135deg, ${from}, ${to})` };
+    };
+
+    const calculateXp = (stats) => {
+        if (!stats) return 0;
+        const totalScore = Number(stats.totalScore) || 0;
+        const gamesPlayed = Number(stats.gamesPlayed) || 0;
+        const gamesWon = Number(stats.gamesWon) || 0;
+        const correctGuesses = Number(stats.correctGuesses) || 0;
+        const fastGuesses = Number(stats.fastGuesses) || 0;
+        const xp = totalScore + (gamesPlayed * 10) + (gamesWon * 25) + (correctGuesses * 3) + (fastGuesses * 6);
+        return Math.max(0, Math.round(xp));
+    };
 
     const fetchMe = async () => {
         try {
@@ -37,6 +76,11 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
             setActiveTab("stats"); // Reset tab on open
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !profileContentRef.current) return;
+        profileContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }, [activeTab, isOpen]);
 
     const handleRegister = async () => {
         try {
@@ -87,31 +131,29 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
 
     if (!isOpen) return null;
 
-    // --- Mock Data Generator for Graph ---
-    // Note: Since tracking daily stats requires significant database changes,
-    // this currently uses beautifully simulated data based on your overall stats and timeframe.
+    // --- Chart Data Generator ---
+    // Note: Daily breakdowns are not stored yet, so this evenly spreads totals across the timeframe.
+    const xpValue = user ? calculateXp(user) : 0;
+
     const getChartData = () => {
         if (!user) return [];
         let baseValue = 0;
         if (selectedStat === "gamesPlayed") baseValue = user.gamesPlayed;
-        else if (selectedStat === "xp") baseValue = user.totalScore;
+        else if (selectedStat === "xp") baseValue = xpValue;
         else if (selectedStat === "wins") baseValue = user.gamesWon;
         else if (selectedStat === "guesses") baseValue = user.correctGuesses;
 
-        // Distribute the total across chunks based on timeframe just for visual fun
+        // Spread the total across chunks for a stable, readable trend.
         const count = timeframe === "daily" ? 7 : (timeframe === "weekly" ? 4 : 6);
+        if (baseValue <= 0) return Array(count).fill(0);
+
         const data = [];
-        
         let remaining = baseValue;
-        for(let i = 0; i < count; i++) {
-            if(i === count - 1) {
-                data.push(remaining > 0 ? remaining : Math.floor(Math.random() * 10));
-            } else {
-                let share = Math.floor(baseValue / count) + Math.floor(Math.random() * (baseValue / count / 2));
-                data.push(share);
-                remaining -= share;
-                if(remaining < 0) remaining = 0;
-            }
+        for (let i = 0; i < count; i += 1) {
+            const slotsLeft = count - i;
+            const share = Math.floor(remaining / slotsLeft);
+            data.push(share);
+            remaining -= share;
         }
         return data;
     };
@@ -122,13 +164,12 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
     return (
         <div className="profile-modal-overlay" onClick={onClose}>
             <div 
-                className="profile-modal" 
-                style={{ backgroundColor: "var(--primary-bg)", borderColor: colors.secondaryDark }}
+                className="profile-modal"
                 onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
             >
                 <div className="profile-modal-header">
                     <h2>My Profile</h2>
-                    <button className="close-btn" onClick={onClose} style={{ color: colors.secondaryDark }}>&times;</button>
+                    <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
 
                 {!user || user.isGuest ? (
@@ -140,11 +181,11 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                             </p>
                         )}
                         <div className="tab-toggle" style={{ display: "flex", justifyContent:"center", gap: "20px", marginBottom: "20px" }}>
-                            <label style={{ cursor: "pointer", color: !isRegistering ? colors.primary : "white" }}>
+                            <label style={{ cursor: "pointer", color: !isRegistering ? colors.primary : "var(--color-text)" }}>
                                 <input type="radio" checked={!isRegistering} onChange={() => setIsRegistering(false)} style={{ display: "none"}} /> 
                                 <span style={{ fontWeight: !isRegistering ? "bold" : "normal", textDecoration: !isRegistering ? "underline" : "none", fontSize: "1.2rem" }}>Login</span>
                             </label>
-                            <label style={{ cursor: "pointer", color: isRegistering ? colors.primary : "white" }}>
+                            <label style={{ cursor: "pointer", color: isRegistering ? colors.primary : "var(--color-text)" }}>
                                 <input type="radio" checked={isRegistering} onChange={() => setIsRegistering(true)} style={{ display: "none"}} /> 
                                 <span style={{ fontWeight: isRegistering ? "bold" : "normal", textDecoration: isRegistering ? "underline" : "none", fontSize: "1.2rem" }}>Register</span>
                             </label>
@@ -171,7 +212,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                             <div 
                                 className="profile-tab" 
                                 style={{ 
-                                    color: activeTab === "stats" ? colors.primary : "white",
+                                    color: activeTab === "stats" ? colors.primary : "var(--color-text)",
                                     borderBottomColor: activeTab === "stats" ? colors.primary : "transparent"
                                 }}
                                 onClick={() => setActiveTab("stats")}
@@ -181,20 +222,30 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                             <div 
                                 className="profile-tab"
                                 style={{ 
-                                    color: activeTab === "achievements" ? colors.primary : "white",
+                                    color: activeTab === "achievements" ? colors.primary : "var(--color-text)",
                                     borderBottomColor: activeTab === "achievements" ? colors.primary : "transparent"
                                 }}
                                 onClick={() => setActiveTab("achievements")}
                             >
                                 <FaTrophy style={{ marginRight: 5 }} /> Achievements
                             </div>
+                            <div 
+                                className="profile-tab"
+                                style={{ 
+                                    color: activeTab === "friends" ? colors.primary : "var(--color-text)",
+                                    borderBottomColor: activeTab === "friends" ? colors.primary : "transparent"
+                                }}
+                                onClick={() => setActiveTab("friends")}
+                            >
+                                <FaUserFriends style={{ marginRight: 5 }} /> Friends
+                            </div>
                         </div>
 
-                        <div className="profile-content">
+                        <div className="profile-content" ref={profileContentRef}>
                             {/* User Header matches across tabs */}
                             <div className="user-header-info">
-                                <div className="user-avatar" style={{ backgroundColor: colors.secondaryDark }}>
-                                    {user.name.charAt(0).toUpperCase()}
+                                <div className="user-avatar" style={getAvatarStyle(user.name)}>
+                                    {getAvatarInitials(user.name)}
                                 </div>
                                 <div className="user-details">
                                     <h3>{user.name}</h3>
@@ -243,23 +294,27 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                         </div>
 
                                         <div className="stat-toggles">
-                                            <button className={`stat-toggle-btn ${selectedStat === "xp" ? "active" : ""}`} onClick={() => setSelectedStat("xp")}>XP ({user.totalScore})</button>
+                                            <button
+                                                className={`stat-toggle-btn ${selectedStat === "xp" ? "active" : ""}`}
+                                                onClick={() => setSelectedStat("xp")}
+                                                title="XP = score + (games played x 10) + (wins x 25) + (guesses x 3) + (fast guesses x 6)"
+                                            >
+                                                XP ({xpValue})
+                                            </button>
                                             <button className={`stat-toggle-btn ${selectedStat === "gamesPlayed" ? "active" : ""}`} onClick={() => setSelectedStat("gamesPlayed")}>Games ({user.gamesPlayed})</button>
                                             <button className={`stat-toggle-btn ${selectedStat === "wins" ? "active" : ""}`} onClick={() => setSelectedStat("wins")}>Wins ({user.gamesWon})</button>
                                             <button className={`stat-toggle-btn ${selectedStat === "guesses" ? "active" : ""}`} onClick={() => setSelectedStat("guesses")}>Guesses ({user.correctGuesses})</button>
                                         </div>
                                     </div>
+                                </div>
+                            )}
 
-                                    {/* Friends Section */}
+                            {activeTab === "friends" && (
+                                <div className="tab-pane-friends">
                                     <div className="friends-section">
-                                        <h4><FaUserFriends style={{ marginRight: 5 }} /> Friends</h4>
                                         <div className="friends-list">
                                             Connect with friends (Coming Soon!)
                                         </div>
-                                    </div>
-
-                                    <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-                                        <Button onClick={handleLogout}>Logout</Button>
                                     </div>
                                 </div>
                             )}
@@ -298,7 +353,7 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                                             onClick={() => handleEquipTitle(isEquipped ? null : id)}
                                                             style={{
                                                                 backgroundColor: isEquipped ? colors.primary : "transparent",
-                                                                color: isEquipped ? "white" : colors.primary
+                                                                color: isEquipped ? "var(--color-text)" : colors.primary
                                                             }}
                                                         >
                                                             {isEquipped ? "Equipped" : "Equip"}
@@ -310,6 +365,10 @@ function ProfileModal({ isOpen, onClose, onAuthChange }) {
                                     </div>
                                 </div>
                             )}
+
+                            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+                                <Button onClick={handleLogout}>Logout</Button>
+                            </div>
 
                         </div>
                     </>
