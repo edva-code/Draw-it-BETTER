@@ -152,7 +152,7 @@ public class GameServiceTest
                 new UserModel {Id = Player2Id, Name = Name}
             });
 
-        _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+        _service.AddGuessedPlayer(RoomId, Player2Id, false, out bool turnEnded, out bool roundEnded, out bool gameEnded);
 
         Assert.That(turnEnded, Is.True); // Only 1 guesser needed (2 players)
         Assert.That(roundEnded, Is.False); // 2 turns per round (2 players)
@@ -164,7 +164,7 @@ public class GameServiceTest
     {
         _game.GuessedPlayersIds.Add(Player2Id);
 
-        _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+        _service.AddGuessedPlayer(RoomId, Player2Id, false, out bool turnEnded, out bool roundEnded, out bool gameEnded);
 
         Assert.That(turnEnded, Is.False);
         Assert.That(roundEnded, Is.False);
@@ -185,10 +185,10 @@ public class GameServiceTest
 
         _game.RoundScores[DrawerId] = 1;
 
-        // Act 
-        _service.AddGuessedPlayer(RoomId, Player2Id, out bool turnEnded, out bool roundEnded, out bool gameEnded);
+        // Act
+        _service.AddGuessedPlayer(RoomId, Player2Id, false, out bool turnEnded, out bool roundEnded, out bool gameEnded);
 
-        // Assert 
+        // Assert
         Assert.That(_game.RoundScores[DrawerId], Is.EqualTo(2));
         Assert.That(_game.RoundScores[Player2Id], Is.EqualTo(2));
 
@@ -219,10 +219,11 @@ public class GameServiceTest
         _game.CurrentPhase = GamePhase.DrawingPhase;
 
         var users = new List<UserModel>
-    {
-        new UserModel { Id = 1, Name = "A" },
-        new UserModel { Id = 2, Name = "B" }
-    };
+        {
+            new UserModel { Id = 1, Name = "A" },
+            new UserModel { Id = 2, Name = "B" }
+        };
+
         _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
 
         // Act
@@ -273,10 +274,10 @@ public class GameServiceTest
         _game.PlayerCount = 2;
 
         var users = new List<UserModel>
-    {
-        new UserModel { Id = 1, Name = "A" },
-        new UserModel { Id = 2, Name = "B" }
-    };
+        {
+            new UserModel { Id = 1, Name = "A" },
+            new UserModel { Id = 2, Name = "B" }
+        };
         _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
 
         // Setup room for total rounds
@@ -306,10 +307,10 @@ public class GameServiceTest
         _game.CurrentRound = 3; // Last round
 
         var users = new List<UserModel>
-    {
-        new UserModel { Id = 1, Name = "A" },
-        new UserModel { Id = 2, Name = "B" }
-    };
+        {
+            new UserModel { Id = 1, Name = "A" },
+            new UserModel { Id = 2, Name = "B" }
+        };
         _roomService.Setup(s => s.GetUsersInRoom(RoomId)).Returns(users);
 
         // Setup room for total rounds

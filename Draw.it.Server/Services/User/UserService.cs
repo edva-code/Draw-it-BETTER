@@ -28,7 +28,8 @@ public class UserService : IUserService
             throw new AppException("User name cannot be empty", System.Net.HttpStatusCode.BadRequest);
         }
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9]+$"))
+        // Allow letters, numbers and underscore for usernames
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_]+$"))
         {
             throw new AppException("Name can only contain letters and numbers", System.Net.HttpStatusCode.BadRequest);
         }
@@ -61,7 +62,8 @@ public class UserService : IUserService
             throw new AppException("Name, email and password are required", System.Net.HttpStatusCode.BadRequest);
         }
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9]+$"))
+        // Allow letters, numbers and underscore for usernames
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_]+$"))
         {
             throw new AppException("Name can only contain letters and numbers", System.Net.HttpStatusCode.BadRequest);
         }
@@ -171,7 +173,7 @@ public class UserService : IUserService
         var user = GetUser(userId);
         user.IsReady = isReady;
         _userRepository.Save(user);
-        _logger.LogInformation("User {} ready status set to {}", userId, isReady);
+        _logger.LogInformation("User {UserId} ready status set to {IsReady}", userId, isReady);
     }
 
     /// <summary>
@@ -207,13 +209,21 @@ public class UserService : IUserService
     public void CreateAiUser(string roomId)
     {
         var aiName = GenerateAiPlayerName(roomId);
-        var aiUser = CreateUser(aiName);
-        aiUser.IsAi = true;
-        aiUser.RoomId = roomId;
-        aiUser.IsReady = true;
-        aiUser.IsConnected = true;
+
+        // Create AI user directly without going through CreateUser to avoid username validation
+        // (AI names include timestamps and can exceed the normal username length limit).
+        var aiUser = new UserModel
+        {
+            Id = _userRepository.GetNextId(),
+            Name = aiName,
+            IsAi = true,
+            RoomId = roomId,
+            IsReady = true,
+            IsConnected = true
+        };
 
         _userRepository.Save(aiUser);
+        _logger.LogInformation("AI user with name={AiName} created in room={RoomId}", aiName, roomId);
     }
 
     public UserModel GetAiUserInRoom(string roomId)

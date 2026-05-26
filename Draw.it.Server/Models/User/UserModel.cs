@@ -7,7 +7,7 @@ public class UserModel
     public string? Email { get; set; }
     public string? PasswordHash { get; set; }
     public int TotalScore { get; set; } = 0;
-    
+
     // Achievement / Stats tracking
     public int GamesPlayed { get; set; } = 0;
     public int GamesWon { get; set; } = 0;

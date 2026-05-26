@@ -9,9 +9,9 @@ namespace Draw.it.Server.Services.Room
     {
         // Thread-safe dictionary for active sessions
         private readonly ConcurrentDictionary<string, VoteKickSession> _activeSessions = new();
-        
+
         private readonly ConcurrentDictionary<string, DateTime> _cooldowns = new();
-        
+
         private readonly TimeSpan _cooldownTime = TimeSpan.FromSeconds(15);
 
         public VoteKickSession InitiateVote(RoomModel room, long initiatorUserId, long targetUserId)
@@ -84,7 +84,7 @@ namespace Draw.it.Server.Services.Room
                 {
                     session.VotesAgainst.Add(voterId);
                 }
-                
+
                 return (true, session);
             }
         }

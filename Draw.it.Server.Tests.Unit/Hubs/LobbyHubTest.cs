@@ -80,7 +80,6 @@ public class LobbyHubTest
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-
         _groupClient
             .Setup<Task>(c => c.SendCoreAsync(
                 It.IsAny<string>(),
@@ -100,7 +99,7 @@ public class LobbyHubTest
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IRoomService))).Returns(_roomService.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUserService))).Returns(_userService.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ILogger<LobbyHub>))).Returns(_logger.Object);
-        
+
         var mockHubContext = new Mock<IHubContext<LobbyHub>>();
         var mockHubClients = new Mock<IHubClients>();
         mockHubClients.Setup(c => c.Group(It.IsAny<string>())).Returns(_groupClient.Object);
@@ -219,6 +218,7 @@ public class LobbyHubTest
         _roomService.Verify(
             s => s.LeaveRoom(It.IsAny<string>(), It.IsAny<UserModel>(), It.IsAny<bool>()),
             Times.Never);
+
         _roomService.Verify(
             s => s.DeleteRoom(It.IsAny<string>(), It.IsAny<UserModel>(), It.IsAny<bool>()),
             Times.Never);

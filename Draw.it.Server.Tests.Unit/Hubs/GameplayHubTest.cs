@@ -462,6 +462,7 @@ public class GameplayHubTest
             s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny),
@@ -495,6 +496,7 @@ public class GameplayHubTest
             s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny),
@@ -542,6 +544,7 @@ public class GameplayHubTest
             s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny),
@@ -711,6 +714,7 @@ public class GameplayHubTest
             s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny),
@@ -773,6 +777,7 @@ public class GameplayHubTest
             s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny),
@@ -1078,10 +1083,11 @@ public class GameplayHubTest
             .Setup(s => s.AddGuessedPlayer(
                 It.IsAny<string>(),
                 It.IsAny<long>(),
+                It.IsAny<bool>(),
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny,
                 out It.Ref<bool>.IsAny))
-            .Callback((string roomId, long userId, out bool turn, out bool round, out bool game) =>
+            .Callback((string roomId, long userId, bool isFastGuess, out bool turn, out bool round, out bool game) =>
             {
                 turn = turnEnded;
                 round = roundEnded;
