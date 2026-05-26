@@ -6,7 +6,7 @@ using System.Security.Claims;
 using Draw.it.Server.Extensions;
 using Draw.it.Server.Controllers.Auth.DTO;
 using Draw.it.Server.Services.User;
-using Draw.it.Server.Models.User;  
+using Draw.it.Server.Models.User;
 using Draw.it.Server.Services.Achievement;
 
 namespace Draw.it.Server.Controllers.Auth;

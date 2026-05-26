@@ -8,10 +8,10 @@ namespace Draw.it.Server.Models.Room
         public string RoomId { get; set; } = string.Empty;
         public long TargetUserId { get; set; }
         public long InitiatorUserId { get; set; }
-        
+
         public HashSet<long> VotesFor { get; set; } = new HashSet<long>();
         public HashSet<long> VotesAgainst { get; set; } = new HashSet<long>();
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsCancelled { get; set; }
 

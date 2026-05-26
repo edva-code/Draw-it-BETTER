@@ -25,12 +25,12 @@ namespace Draw.it.Server.Services.Room
         /// Checks if a vote kick is currently on cooldown for the given room.
         /// </summary>
         bool IsOnCooldown(string roomId);
-        
+
         /// <summary>
         /// Retrieves the current active session, if any.
         /// </summary>
         VoteKickSession? GetActiveSession(string roomId);
-        
+
         /// <summary>
         /// Removes the session from active sessions (usually called after timeout or success).
         /// </summary>

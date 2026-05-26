@@ -182,15 +182,15 @@ public class LobbyHub : BaseHub<LobbyHub>
 
             var session = _voteKickService.InitiateVote(room, user.Id, targetId);
 
-            await Clients.Group(roomId).SendAsync("ReceiveVoteKickStarted", new 
+            await Clients.Group(roomId).SendAsync("ReceiveVoteKickStarted", new
             {
                 TargetUserId = session.TargetUserId,
                 InitiatorUserId = session.InitiatorUserId,
                 CreatedAt = session.CreatedAt
             });
-            
+
             _logger.LogInformation("Vote kick initiated in room {RoomId} by user {InitiatorId} against user {TargetId}", roomId, user.Id, targetId);
-            
+
             // Patikriname, ar jau pasiekta dauguma (pvz., kai kambaryje tik 2 žmonės ir 1 balsas jau yra dauguma - nors įprastai 1 nėra > 2/2. Bet teoriškai.)
             await TryResolveVoteKickEarly(roomId, session);
 
@@ -216,7 +216,7 @@ public class LobbyHub : BaseHub<LobbyHub>
     {
         var user = await ResolveUserAsync();
         var roomId = user.RoomId!;
-        
+
         if (!_roomService.IsHost(roomId, user))
         {
             await Clients.Caller.SendAsync("ReceiveVoteKickError", "Only the host can directly kick a player.");
@@ -234,7 +234,7 @@ public class LobbyHub : BaseHub<LobbyHub>
         var (success, session) = _voteKickService.RegisterVote(roomId, user.Id, voteFor);
         if (success && session != null)
         {
-            await Clients.Group(roomId).SendAsync("ReceiveVoteRegistered", new 
+            await Clients.Group(roomId).SendAsync("ReceiveVoteRegistered", new
             {
                 TargetUserId = session.TargetUserId,
                 VotesFor = session.VotesFor.Count,
@@ -291,7 +291,7 @@ public class LobbyHub : BaseHub<LobbyHub>
                 await Clients.User(session.TargetUserId.ToString()).SendAsync("ReceiveKickedFromRoom");
                 _logger.LogInformation("User {TargetId} was kicked early from room {RoomId}", session.TargetUserId, roomId);
             }
-            
+
             await Clients.Group(roomId).SendAsync("ReceiveVoteKickSuccessful", session.TargetUserId);
             _voteKickService.CleanUpSession(roomId);
         }
@@ -312,7 +312,7 @@ public class LobbyHub : BaseHub<LobbyHub>
         try
         {
             var session = voteKickService.GetActiveSession(roomId);
-            
+
             // Jei dabartinė sesija nėra ta pati (pvz. buvusi atšaukta ir sukurta nauja) arba ji atšaukta.
             if (session != initiatedSession || initiatedSession.IsCancelled)
             {
@@ -335,7 +335,7 @@ public class LobbyHub : BaseHub<LobbyHub>
                     await hubContext.Clients.User(session.TargetUserId.ToString()).SendAsync("ReceiveKickedFromRoom");
                     logger.LogInformation("User {TargetId} was kicked from room {RoomId}", session.TargetUserId, roomId);
                 }
-                
+
                 await hubContext.Clients.Group(roomId).SendAsync("ReceiveVoteKickSuccessful", session.TargetUserId);
             }
             else
@@ -358,7 +358,7 @@ public class LobbyHub : BaseHub<LobbyHub>
         {
             _roomService.LeaveRoom(roomId, targetUser, force: true);
             await Clients.User(targetId.ToString()).SendAsync("ReceiveKickedFromRoom");
-            
+
             var players = _roomService.GetUsersInRoom(roomId).Select(p => new PlayerDto(p, _roomService.IsHost(roomId, p))).ToList();
             await Clients.Group(roomId).SendAsync("ReceivePlayerList", players);
 
